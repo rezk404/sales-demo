@@ -124,18 +124,15 @@ mark { background: #fff1b8; color: inherit; border-radius: 2px; padding: 0 1px; 
 .sb-group.is-active > .sb-item { color: var(--sb-text-active); }
 .sb-sub { display: none; padding: 2px 0 8px; background: var(--sb-bg-2); }
 .sb-group.is-open .sb-sub { display: block; }
-.sb-subitem, .sb-subitem2 {
+.sb-subitem2 {
   display: flex; align-items: center; gap: 8px;
   color: var(--sb-text); white-space: nowrap;
   transition: color .15s, background .15s;
 }
-.sb-subitem { height: 36px; padding: 0 20px 0 49px; font-size: 13px; }
-.sb-subitem:hover, .sb-subitem2:hover { color: var(--sb-text-active); }
-.sb-subitem.is-active { color: var(--sb-text-active); }
-.sb-sub2 { position: relative; margin: 0 0 4px 49px; border-left: 1px solid var(--sb-border); }
-.sb-subitem2 { height: 32px; padding: 0 20px 0 14px; font-size: 12.5px; position: relative; }
+.sb-subitem2:hover { color: var(--sb-text-active); }
+.sb-subitem2 { height: 38px; padding: 0 20px 0 49px; font-size: 13px; position: relative; }
 .sb-subitem2.is-active { color: var(--sb-text-active); font-weight: 600; }
-.sb-subitem2.is-active::before { content: ""; position: absolute; left: -1px; top: 7px; bottom: 7px; width: 2px; background: var(--accent); border-radius: 1px; }
+.sb-subitem2.is-active::before { content: ""; position: absolute; left: 36px; top: 9px; bottom: 9px; width: 2px; background: var(--accent); border-radius: 1px; }
 .sb-count {
   margin-left: auto; min-width: 20px; height: 18px; padding: 0 6px; border-radius: 9px;
   background: rgba(255, 255, 255, 0.08); color: var(--sb-text);

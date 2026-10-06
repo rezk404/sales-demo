@@ -17,10 +17,8 @@ app.js       configuration, demo data, state, rendering, modals, filters, drag &
 
 ```
 Leads
- ├── Lead Contact
- └── Deals
-      ├── Fresh   new incoming leads            → List view only
-      └── Cold    leads being worked by Sales   → List view + Kanban
+ ├── Fresh   new incoming leads            → List view only
+ └── Cold    leads being worked by Sales   → List view + Kanban
 ```
 
 ### Fresh

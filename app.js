@@ -1,7 +1,7 @@
 /* ==========================================================================
    Sales Pipeline prototype (frontend only, no backend)
 
-   Two views under Leads › Deals:
+   Two views under Leads:
      FRESH  new incoming leads (list only, intake data)
      COLD   leads being worked by Sales (list + Kanban)
 
@@ -1041,7 +1041,6 @@
     }));
     $$('[data-nav]', $('#sidebar')).forEach((a) => a.addEventListener('click', (e) => {
       e.preventDefault();
-      if (a.dataset.nav === 'Deals') return setSection(state.section);
       toast(a.dataset.nav, `${a.dataset.nav} is outside this Sales prototype.`, 'info');
     }));
     $('#sbToggle').addEventListener('click', () => {

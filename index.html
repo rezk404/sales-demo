@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sales Pipeline</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Light navigation rail (icons are injected from app.js) -->
+    <nav class="rail" aria-label="Main navigation">
+      <div class="rail-logo" title="Realty CRM">R</div>
+      <a class="rail-item" href="#" title="Dashboard" data-icon="grid"></a>
+      <a class="rail-item" href="#" title="Clients" data-icon="users"></a>
+      <a class="rail-item is-active" href="#" title="Sales" aria-current="page" data-icon="dollar"></a>
+      <a class="rail-item" href="#" title="Projects" data-icon="building"></a>
+      <a class="rail-item" href="#" title="Calendar" data-icon="calendar"></a>
+      <a class="rail-item" href="#" title="Messages" data-icon="message"></a>
+      <a class="rail-item" href="#" title="Reports" data-icon="barChart"></a>
+      <a class="rail-item rail-bottom" href="#" title="Settings" data-icon="sliders"></a>
+    </nav>
+
+    <div class="main">
+      <!-- Page header -->
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1>Sales Pipeline</h1>
+          <nav class="crumbs" aria-label="Breadcrumb">
+            <a href="#">Home</a><span>•</span><a href="#">Sales</a><span>•</span><span aria-current="page">Pipeline</span>
+          </nav>
+        </div>
+        <div class="topbar-actions">
+          <button class="top-icon" type="button" id="topSearchBtn" title="Search leads" data-icon="search"></button>
+          <button class="top-icon" type="button" title="Sticky notes" data-icon="fileText"></button>
+          <button class="top-icon" type="button" title="Timer" data-icon="clock"></button>
+          <button class="top-icon" type="button" id="topAddBtn" title="Add lead" data-icon="plusCircle"></button>
+          <button class="top-icon has-badge" type="button" title="Notifications" data-icon="bell"><span class="top-badge">12</span></button>
+          <span class="top-divider" aria-hidden="true"></span>
+          <div class="top-user" title="Ahmed Gad · Sales Manager">
+            <span class="avatar avatar-sm" style="--av:#5b6fd6">AG</span>
+            <span class="top-user-text"><strong>Ahmed Gad</strong><small>Sales Manager</small></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Filter bar -->
+      <div class="filterbar" role="toolbar" aria-label="Pipeline filters">
+        <div class="fb-item"><span class="fb-label" id="lblDuration">Duration</span><div id="durationSelect"></div></div>
+        <div class="fb-item"><span class="fb-label" id="lblPipeline">Pipeline</span><div id="pipelineSelect"></div></div>
+        <div class="fb-item"><span class="fb-label" id="lblCategory">Category</span><div id="categorySelect"></div></div>
+        <div class="fb-item"><span class="fb-label" id="lblProject">Project</span><div id="projectSelect"></div></div>
+        <div class="fb-search">
+          <span class="fb-search-icon" data-icon="search"></span>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="Search by name, lead ID, phone, project or agent" aria-label="Search leads">
+          <button type="button" class="fb-search-clear" id="searchClear" title="Clear search" data-icon="x" hidden></button>
+        </div>
+        <div class="fb-filters">
+          <button type="button" class="fb-filters-btn" id="filtersBtn" aria-expanded="false" aria-controls="filtersPanel">
+            <span data-icon="filter"></span>Filters<span class="fb-filters-count" id="filtersCount" hidden>0</span>
+          </button>
+          <div class="filters-panel" id="filtersPanel" role="dialog" aria-label="Filters" hidden>
+            <div class="fp-head">
+              <strong>Filter leads</strong>
+              <button type="button" class="link-btn" id="filtersReset">Reset</button>
+            </div>
+            <div class="fp-grid">
+              <div class="form-field"><label class="form-label" id="lblFStage">Stage</label><div id="fStage"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFStatus">Status</label><div id="fStatus"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFAgent">Assigned agent</label><div id="fAgent"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFProject">Project</label><div id="fProject"></div></div>
+              <div class="form-field fp-full"><label class="form-label" id="lblFActivity">Last activity</label><div id="fActivity"></div></div>
+            </div>
+            <div class="fp-foot">
+              <span class="fp-result" id="filtersResult"></span>
+              <button type="button" class="btn btn-primary btn-sm" id="filtersDone">Done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actionbar">
+        <div class="actionbar-left">
+          <button type="button" class="btn btn-primary" id="addLeadBtn"><span data-icon="plus"></span>Add Lead</button>
+          <div class="workflow-hint" aria-label="How the pipeline works">
+            <span class="wh-item"><span class="wh-stage">Stage</span><span class="wh-note">column</span></span>
+            <span class="wh-arrow" data-icon="chevronRight"></span>
+            <span class="wh-item"><span class="badge-status tone-blue"><span class="dot"></span>Status</span></span>
+            <span class="wh-arrow" data-icon="chevronRight"></span>
+            <span class="wh-item"><span class="badge-sub">Sub-status</span></span>
+            <span class="wh-sep"></span>
+            <span class="wh-text">Click a lead to update it. Drag a card to move it to another stage.</span>
+          </div>
+        </div>
+        <div class="view-toggle" role="group" aria-label="View">
+          <button type="button" class="vt-btn" data-view="list" title="List view" aria-pressed="false" data-icon="list"></button>
+          <button type="button" class="vt-btn is-active" data-view="kanban" title="Kanban view" aria-pressed="true" data-icon="kanban"></button>
+        </div>
+      </div>
+
+      <div class="active-filters" id="activeFilters" hidden></div>
+
+      <main class="workspace">
+        <div class="board" id="board" aria-label="Sales pipeline board"></div>
+        <div class="list-wrap" id="listView" hidden></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- One centered modal handles view, update, move and create -->
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></div>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

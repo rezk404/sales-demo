@@ -844,7 +844,7 @@
     $('#topAddBtn').hidden = !cold;
     const filterbar = $('#filterbar');
     filterbar.classList.toggle('is-fresh', !cold);
-    $('#filtersBtn').closest('.fb-filters')?.classList.toggle('is-cold-only', !cold);
+    filterbar.querySelectorAll('[data-cold-only]').forEach((el) => { el.hidden = !cold; });
     $('#viewToggle').hidden = !cold;
     $$('.vt-btn').forEach((b) => {
       const on = b.dataset.view === state.coldView;

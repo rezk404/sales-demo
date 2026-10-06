@@ -44,8 +44,8 @@
     // Their related fields are shown directly from the selected status.
     no_answer: {
       label: 'No Answer', stage: 'contact', tone: 'amber',
-      subStatuses: [], fields: ['budget', 'project', 'location', 'note'],
-      emptyHint: 'No Answer has no sub-status. Its related details are shown automatically.',
+      subStatuses: [], fields: [],
+      emptyHint: 'No Answer has no sub-status or related details.',
     },
     call_later: {
       label: 'Call Later', stage: 'contact', tone: 'sky',

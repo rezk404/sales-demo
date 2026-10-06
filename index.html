@@ -49,7 +49,7 @@
             <a href="#">Home</a><span>•</span><a href="#">Leads</a><span>•</span><span aria-current="page" id="crumbSection">Fresh</span>
           </nav>
         </div>
-        <div class="topbar-actions">
+        <div class="topbar-actions" id="topbarActions">
           <button class="top-icon" type="button" id="topSearchBtn" title="Search" data-icon="search"></button>
           <button class="top-icon" type="button" id="topAddBtn" title="Add lead" data-icon="plusCircle"></button>
           <button class="top-icon has-badge" type="button" title="Notifications" data-icon="bell"><span class="top-badge">12</span></button>
@@ -70,34 +70,10 @@
 
       <!-- Filter bar -->
       <div class="filterbar" role="toolbar" aria-label="Filters">
-        <div class="fb-item"><span class="fb-label" id="lblPipeline">Pipeline</span><div id="pipelineSelect"></div></div>
-        <div class="fb-item"><span class="fb-label" id="lblProject">Project</span><div id="projectSelect"></div></div>
-        <div class="fb-item"><span class="fb-label" id="lblAgent">Agent</span><div id="agentSelect"></div></div>
         <div class="fb-search">
           <span class="fb-search-icon" data-icon="search"></span>
           <input id="searchInput" type="search" autocomplete="off" placeholder="Start typing to search" aria-label="Search leads">
           <button type="button" class="fb-search-clear" id="searchClear" title="Clear search" data-icon="x" hidden></button>
-        </div>
-        <div class="fb-filters">
-          <button type="button" class="fb-filters-btn" id="filtersBtn" aria-expanded="false" aria-controls="filtersPanel">
-            <span data-icon="filter"></span>Filters<span class="fb-filters-count" id="filtersCount" hidden>0</span>
-          </button>
-          <div class="filters-panel" id="filtersPanel" role="dialog" aria-label="Filters" hidden>
-            <div class="fp-head">
-              <strong>Filters</strong>
-              <button type="button" class="link-btn" id="filtersReset">Reset</button>
-            </div>
-            <div class="fp-grid">
-              <div class="form-field" data-cold-only><label class="form-label" id="lblFStage">Stage</label><div id="fpStage"></div></div>
-              <div class="form-field" data-cold-only><label class="form-label" id="lblFStatus">Status</label><div id="fpStatus"></div></div>
-              <div class="form-field"><label class="form-label" id="lblFChannel">Channel</label><div id="fpChannel"></div></div>
-              <div class="form-field"><label class="form-label" id="lblFPlatform">Platform</label><div id="fpPlatform"></div></div>
-            </div>
-            <div class="fp-foot">
-              <span class="fp-result" id="filtersResult"></span>
-              <button type="button" class="btn btn-primary btn-sm" id="filtersDone">Done</button>
-            </div>
-          </div>
         </div>
       </div>
 

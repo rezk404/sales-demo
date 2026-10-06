@@ -40,6 +40,8 @@
       emptyHint: 'Fresh leads have no sub-status. Once you reach the client, move the lead to Contact & Follow-Up.',
     },
 
+    // Contact & Follow-Up: these statuses have NO sub-status.
+    // Their related fields are shown directly from the selected status.
     no_answer: {
       label: 'No Answer', stage: 'contact', tone: 'amber',
       subStatuses: [], fields: ['budget', 'project', 'location', 'note'],
@@ -1639,10 +1641,11 @@
     const d = modal.draft;
     const lead = modal.lead;
     const st = STATUS_CONFIG[d.status];
-    const sub = subStatusOf(d.status, d.subStatus);
+    // Statuses with no sub-statuses must always keep subStatus empty.
+    const normalizedSubStatus = st.subStatuses.length ? d.subStatus : '';
     const now = new Date().toISOString();
     const stageChanged = lead.stage !== d.stage;
-    const stateChanged = lead.status !== d.status || lead.subStatus !== d.subStatus;
+    const stateChanged = lead.status !== d.status || lead.subStatus !== normalizedSubStatus;
 
     st.fields.forEach((k) => { if (d.details[k] !== undefined) lead.details[k] = d.details[k]; });
     if (st.fields.includes('budget') && d.details.budget) lead.budget = d.details.budget;
@@ -1652,7 +1655,7 @@
     }
     const proj = (st.fields.includes('project') && d.details.project) || (st.fields.includes('projectName') && d.details.projectName);
     if (proj) lead.project = proj;
-    Object.assign(lead, { stage: d.stage, status: d.status, subStatus: d.subStatus, lastActivity: now });
+    Object.assign(lead, { stage: d.stage, status: d.status, subStatus: normalizedSubStatus, lastActivity: now });
 
     const stateLabel = st.label;
     let historyText, message;

@@ -1242,12 +1242,12 @@
     Object.assign(modal, { kind: 'intake', mode: lead ? 'edit' : 'create', lead, selects: {}, returnFocus: document.activeElement });
     modal.draft = lead
       ? {
-          name: lead.name, phone: formatPhone(lead.phone), pipeline: lead.pipeline, budget: lead.budget,
+          name: lead.name, phone: formatPhone(lead.phone), secondNumber: lead.secondNumber || '', pipeline: lead.pipeline || 'sales', budget: lead.budget,
           createdDate: localISODate(lead.createdAt), project: lead.project, agent: lead.agent, unit: lead.unit,
           manager: lead.manager, createdBy: lead.createdBy, channel: lead.channel || 'direct', platform: lead.platform, notes: lead.notes,
         }
       : {
-          name: '', phone: '', pipeline: 'sales', budget: '', createdDate: localISODate(new Date()),
+          name: '', phone: '', secondNumber: '', pipeline: 'sales', budget: '', createdDate: localISODate(new Date()),
           project: '', agent: '', unit: '', manager: '', createdBy: CURRENT_USER, channel: 'direct', platform: '', notes: '',
         };
     buildIntakeModal();
@@ -1273,7 +1273,7 @@
             <div class="intake-grid">
               <div class="form-field"><label class="form-label" for="fName">Name <span class="req">*</span></label><input class="input" id="fName" autocomplete="off" placeholder="e.g. Ahmed Mohamed" value="${esc(d.name)}"></div>
               <div class="form-field"><label class="form-label" for="fPhone">Number <span class="req">*</span></label><input class="input" id="fPhone" inputmode="tel" autocomplete="off" placeholder="01X XXXX XXXX" value="${esc(d.phone)}"></div>
-              <div class="form-field"><label class="form-label" id="lblFPipelineM">Sales Pipeline <span class="req">*</span></label><div id="fPipelineSlot"></div></div>
+              <div class="form-field"><label class="form-label" for="fSecondNumber">Second Number</label><input class="input" id="fSecondNumber" inputmode="tel" autocomplete="off" placeholder="01X XXXX XXXX" value="${esc(d.secondNumber)}"></div>
               <div class="form-field"><label class="form-label" id="lblFStatusM">Status</label><div id="fStatusSlot"></div></div>
               <div class="form-field"><label class="form-label" for="fBudget">Budget</label>${moneyInput('fBudget', d.budget)}</div>
               <div class="form-field"><label class="form-label" for="fDate">Lead Creation Date <span class="req">*</span></label><input class="input" type="date" id="fDate" value="${esc(d.createdDate)}"></div>
@@ -1309,12 +1309,12 @@
 
     $('#fName', modalEl).addEventListener('input', (e) => { d.name = e.target.value; footHint(''); });
     $('#fPhone', modalEl).addEventListener('input', (e) => { d.phone = e.target.value; footHint(''); });
+    $('#fSecondNumber', modalEl).addEventListener('input', (e) => { d.secondNumber = e.target.value; });
     $('#fDate', modalEl).addEventListener('input', (e) => { d.createdDate = e.target.value; });
     $('#fNotes', modalEl).addEventListener('input', (e) => { d.notes = e.target.value; });
     bindMoney($('#fBudget', modalEl), (v) => { d.budget = v; });
 
     const sel = (slot, cfg) => { const s = createSelect(cfg); $(slot, modalEl).appendChild(s.el); return s; };
-    sel('#fPipelineSlot', { id: 'fPipeline', labelledBy: 'lblFPipelineM', options: PIPELINES, value: d.pipeline, onChange: (v) => { d.pipeline = v; } });
     sel('#fStatusSlot', { id: 'fStatusM', labelledBy: 'lblFStatusM', options: [{ value: 'fresh_lead', label: 'Fresh Lead', color: toneDot('fresh_lead') }], value: 'fresh_lead', disabled: true });
     sel('#fProjectSlot', { id: 'fProject', labelledBy: 'lblFProjectM', placeholder: 'Select project', options: allOption('--').concat(PROJECTS.map((p) => ({ value: p, label: p }))), value: d.project, onChange: (v) => { d.project = v; } });
     sel('#fAgentSlot', { id: 'fAgent', labelledBy: 'lblFAgentM', placeholder: 'Select sales name', options: allOption('--').concat(AGENTS.map((a) => ({ value: a, label: a, hint: a === CURRENT_USER ? 'You' : '' }))), value: d.agent,
@@ -1376,7 +1376,7 @@
       return new Date(y, m - 1, day, h, min).toISOString();
     };
     const fields = {
-      name: d.name.trim(), phone: d.phone.replace(/\D/g, ''), pipeline: d.pipeline, budget: d.budget,
+      name: d.name.trim(), phone: d.phone.replace(/\D/g, ''), secondNumber: d.secondNumber.replace(/\D/g, ''), pipeline: d.pipeline || 'sales', budget: d.budget,
       project: d.project, agent: d.agent, unit: d.unit, manager: d.manager, createdBy: d.createdBy,
       channel: d.channel, platform: d.platform, notes: d.notes.trim(),
     };
@@ -1461,6 +1461,7 @@
               </div>
               <dl class="info-list">
                 ${infoRow('Number', `<span class="lt-num">${esc(formatPhone(l.phone))}</span><button type="button" class="icon-btn copy-btn" id="mCopyPhone" title="Copy number" aria-label="Copy number">${icon('copy')}</button>`)}
+                ${l.secondNumber ? infoRow('Second Number', `<span class="lt-num">${esc(formatPhone(l.secondNumber))}</span>`) : ''}
                 ${infoRow('Project', l.project ? esc(l.project) : none)}
                 ${infoRow('Sales Name', l.agent ? `${avatar(l.agent)}${esc(l.agent)}` : none)}
                 ${infoRow('Manager', l.manager ? esc(l.manager) : none)}

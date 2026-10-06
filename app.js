@@ -1,7 +1,11 @@
 /* ==========================================================================
    Sales Pipeline prototype (frontend only, no backend)
 
-   Hierarchy:  STAGE (Kanban column) → LEAD → STATUS → SUB-STATUS → RELATED DATA
+   Two views under Leads › Deals:
+     FRESH  new incoming leads (list only, intake data)
+     COLD   leads being worked by Sales (list + Kanban)
+
+   Cold hierarchy:  STAGE (Kanban column) → LEAD → STATUS → SUB-STATUS → RELATED DATA
 
    Everything below is driven by the configuration objects in section 1.
    The modal never contains per-status DOM logic: it reads STATUS_CONFIG and
@@ -129,13 +133,23 @@
   };
 
   const PROJECTS = ['Palm Hills', 'ZED East', 'SODIC', 'Hyde Park', 'Mountain View'];
-  const CATEGORIES = ['Residential', 'Commercial', 'Coastal'];
   const AGENTS = ['Ahmed Ali', 'Mohamed Mahmoud', 'Ahmed Gad', 'Youssef Ali', 'Mona Samir'];
+  const MANAGERS = ['Ahmed Gad', 'Sherine Fawzy'];
+  const USERS = ['Ahmed Gad', 'Sherine Fawzy', 'Ahmed Ali', 'Mohamed Mahmoud', 'Youssef Ali', 'Mona Samir'];
   const CURRENT_USER = 'Ahmed Gad';
   const AGENT_COLORS = {
     'Ahmed Ali': '#1d82f5', 'Mohamed Mahmoud': '#0f9d8a', 'Ahmed Gad': '#5b6fd6',
-    'Youssef Ali': '#d9822b', 'Mona Samir': '#c2477a',
+    'Youssef Ali': '#d9822b', 'Mona Samir': '#c2477a', 'Sherine Fawzy': '#7a5bd6',
   };
+  const PIPELINES = [{ value: 'sales', label: 'Sales Pipeline' }];
+
+  /* Lead source: Platform options depend on the selected Channel */
+  const CHANNELS = [
+    { id: 'direct', label: 'Direct', platforms: ['Facebook', 'Instagram', 'Google Ads', 'Website', 'Landing Page', 'WhatsApp', 'Property Finder', 'Aqarmap', 'Bayut', 'Other Property Portal'] },
+    { id: 'indirect', label: 'Indirect', platforms: ['Referral', 'Broker', 'Agency / Partner', 'Existing Client', 'Employee Referral', 'Partner Referral'] },
+  ];
+  const channelById = (id) => CHANNELS.find((c) => c.id === id);
+  const channelOf = (platform) => { const c = CHANNELS.find((ch) => ch.platforms.includes(platform)); return c ? c.id : ''; };
   const OFFICES = ['New Cairo HQ', 'Sheikh Zayed Branch', 'Maadi Branch', 'New Capital Office'];
   const SITES = ['Palm Hills October', 'Palm Hills New Cairo', 'ZED East Sales Center', 'SODIC East', 'Hyde Park New Cairo', 'Mountain View iCity'];
   const LOCATIONS = ['New Cairo', 'Sheikh Zayed', '6th of October', 'New Capital', 'Shorouk', 'Maadi', 'North Coast'];
@@ -160,13 +174,6 @@
     unitType:        { label: 'Unit Type',        type: 'select', options: UNIT_TYPES, placeholder: 'Select unit type' },
   };
 
-  const DURATIONS = [
-    { value: 'all',   label: 'All time' },
-    { value: 'today', label: 'Today' },
-    { value: '7d',    label: 'Last 7 days' },
-    { value: '30d',   label: 'Last 30 days' },
-    { value: 'month', label: 'This month' },
-  ];
 
   /* ======================================================================
      2. ICONS (inline SVG, feather-style)
@@ -207,6 +214,13 @@
     sortDesc: '<line x1="4" y1="6" x2="13" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/><polyline points="15 15 18 18 21 15"/><line x1="18" y1="6" x2="18" y2="18"/>',
     sortAlpha: '<path d="M4 18l3.5-10L11 18"/><line x1="5.2" y1="14.5" x2="9.8" y2="14.5"/><polyline points="15 15 18 18 21 15"/><line x1="18" y1="6" x2="18" y2="18"/>',
     edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    menu: '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
+    power: '<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>',
+    home: '<path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+    headphones: '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    chevronLeft: '<polyline points="15 18 9 12 15 6"/>',
+    share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
   };
 
   function icon(name, cls) {
@@ -310,84 +324,102 @@
     d.setHours(hour, minute, 0, 0);
     return d.toISOString();
   }
-  function isoDay(offsetDays) {
-    const d = startOfDay(new Date(NOW));
-    d.setDate(d.getDate() + offsetDays);
+  function localISODate(date) {
+    const d = new Date(date);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
+  const isoDay = (offsetDays) => localISODate(new Date(NOW + offsetDays * 86400000));
+
+  const MANAGER_OF = {
+    'Ahmed Ali': 'Ahmed Gad', 'Mohamed Mahmoud': 'Ahmed Gad', 'Ahmed Gad': 'Sherine Fawzy',
+    'Youssef Ali': 'Sherine Fawzy', 'Mona Samir': 'Sherine Fawzy',
+  };
 
   function seedLead(o) {
-    const statusLabel = STATUS_CONFIG[o.status].label;
-    const sub = subStatusOf(o.status, o.subStatus);
-    const history = [
-      { at: o.lastActivity, by: o.agent, text: `Status set to ${statusLabel}${sub ? ' › ' + sub.label : ''}` },
-      { at: o.createdAt, by: o.agent, text: 'Lead created and assigned' },
-    ];
-    if (o.status === 'fresh_lead') history.shift();
-    return Object.assign({ category: 'Residential', details: {}, nextFollowUp: null, history }, o);
+    const lead = Object.assign({
+      pipeline: 'sales', pool: 'cold', details: {}, nextFollowUp: null,
+      unit: '', notes: '', budget: '', platform: '',
+      manager: MANAGER_OF[o.agent] || 'Ahmed Gad', createdBy: CURRENT_USER,
+    }, o);
+    lead.details = Object.assign({}, lead.details);
+    lead.channel = lead.platform ? channelOf(lead.platform) : (o.channel || '');
+    if (lead.budget === '' && lead.details.budget) lead.budget = lead.details.budget;
+    if (!o.history) {
+      const sub = subStatusOf(lead.status, lead.subStatus);
+      lead.history = [{ at: lead.createdAt, by: lead.createdBy, text: 'Lead created' }];
+      if (lead.pool === 'cold') {
+        lead.history.unshift({ at: lead.createdAt, by: lead.manager, text: 'Moved to Cold' });
+        if (lead.status !== 'fresh_lead') {
+          lead.history.unshift({ at: lead.lastActivity, by: lead.agent, text: `Status set to ${STATUS_CONFIG[lead.status].label}${sub ? ' › ' + sub.label : ''}` });
+        }
+      }
+    }
+    return lead;
   }
 
   const DEMO_LEADS = [
-    /* ---- Stage 1: Fresh Leads ---- */
-    { id: 'LD-10511', name: 'Karim Adel',     phone: '01012844310', project: 'Mountain View', agent: 'Mona Samir',      stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: minutesAgo(18),  createdAt: minutesAgo(18) },
-    { id: 'LD-10509', name: 'Nadine Ahmed',   phone: '01123570098', project: 'ZED East',      agent: 'Ahmed Gad',       stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: minutesAgo(140), createdAt: minutesAgo(140) },
-    { id: 'LD-10507', name: 'Hany Fathy',     phone: '01224019876', project: '',              agent: 'Youssef Ali',     stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: daysAgo(1, 3),   createdAt: daysAgo(1, 3), category: 'Commercial' },
-    { id: 'LD-10506', name: 'Yasmin Fouad',   phone: '01556120473', project: 'Hyde Park',     agent: 'Mohamed Mahmoud', stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: daysAgo(1, 7),   createdAt: daysAgo(1, 7) },
-    { id: 'LD-10503', name: 'Islam Tarek',    phone: '01098431256', project: 'Palm Hills',    agent: 'Ahmed Ali',       stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: daysAgo(2, 2),   createdAt: daysAgo(2, 2), category: 'Coastal' },
+    /* ---------------- FRESH: new incoming leads (list only) ---------------- */
+    { pool: 'fresh', id: 'LD-10531', name: 'Hesham Lotfy',    phone: '01012223334', project: 'Palm Hills',    agent: 'Ahmed Ali',       platform: 'Facebook',        budget: 6000000,  unit: 'Apartment',  stage: 'fresh', status: 'fresh_lead', subStatus: '', createdAt: minutesAgo(22),  lastActivity: minutesAgo(22),  notes: 'Asked about 3-bedroom units with installments.' },
+    { pool: 'fresh', id: 'LD-10530', name: 'Nour El-Din Samy', phone: '01148807712', project: 'ZED East',     agent: 'Mohamed Mahmoud', platform: 'Instagram',       budget: 9500000,  unit: 'Duplex',     stage: 'fresh', status: 'fresh_lead', subStatus: '', createdAt: minutesAgo(75),  lastActivity: minutesAgo(75) },
+    { pool: 'fresh', id: 'LD-10529', name: 'Farida Wael',     phone: '01223415560', project: 'SODIC',         agent: 'Youssef Ali',     platform: 'Referral',        budget: 12000000, unit: 'Townhouse',  stage: 'fresh', status: 'fresh_lead', subStatus: '', createdAt: minutesAgo(190), lastActivity: minutesAgo(190), notes: 'Referred by Rania Ahmed (existing client).' },
+    { pool: 'fresh', id: 'LD-10528', name: 'Ayman Rashad',    phone: '01067789012', project: 'Mountain View', agent: 'Mona Samir',      platform: 'Google Ads',      budget: 4200000,  unit: 'Apartment',  stage: 'fresh', status: 'fresh_lead', subStatus: '', createdAt: daysAgo(1, 2),   lastActivity: daysAgo(1, 2) },
+    { pool: 'fresh', id: 'LD-10527', name: 'Salma Nabil',     phone: '01553342287', project: 'Hyde Park',     agent: 'Ahmed Gad',       platform: 'Property Finder', budget: 7800000,  unit: 'Penthouse',  stage: 'fresh', status: 'fresh_lead', subStatus: '', createdAt: daysAgo(1, 6),   lastActivity: daysAgo(1, 6) },
+    { pool: 'fresh', id: 'LD-10526', name: 'Bassem Fekry',    phone: '01279904413', project: 'Palm Hills',    agent: 'Ahmed Ali',       platform: 'Broker',          budget: 15000000, unit: 'Twin House', stage: 'fresh', status: 'fresh_lead', subStatus: '', createdAt: daysAgo(2, 1),   lastActivity: daysAgo(2, 1) },
+    { pool: 'fresh', id: 'LD-10525', name: 'Ola Hamed',       phone: '01001987345', project: '',              agent: '',                platform: 'WhatsApp',        budget: '',       unit: '',           stage: 'fresh', status: 'fresh_lead', subStatus: '', createdAt: daysAgo(2, 5),   lastActivity: daysAgo(2, 5), manager: 'Ahmed Gad', notes: 'Not assigned yet. Wants a call after 6 PM.' },
 
-    /* ---- Stage 2: Contact & Follow-Up ---- */
-    { id: 'LD-10498', name: 'Laila Mostafa',  phone: '01007719342', project: 'SODIC',         agent: 'Ahmed Ali',       stage: 'contact', status: 'no_answer', subStatus: 'location',
-      details: { location: 'New Cairo', note: 'Prefers a compound close to the AUC area.' },
-      lastActivity: minutesAgo(55), createdAt: daysAgo(4), nextFollowUp: dayAt(1, 11) },
-    { id: 'LD-10495', name: 'Amr Salah',      phone: '01143308817', project: 'Hyde Park',     agent: 'Mohamed Mahmoud', stage: 'contact', status: 'no_answer', subStatus: 'budget',
-      details: { budget: 4500000 }, lastActivity: minutesAgo(210), createdAt: daysAgo(6), nextFollowUp: dayAt(0, 17, 30) },
-    { id: 'LD-10491', name: 'Dina Sherif',    phone: '01287765021', project: 'Mountain View', agent: 'Ahmed Gad',       stage: 'contact', status: 'call_later', subStatus: '',
-      lastActivity: daysAgo(1, 1), createdAt: daysAgo(5), nextFollowUp: dayAt(0, 17) },
-    { id: 'LD-10489', name: 'Mostafa Kamel',  phone: '01019926734', project: 'ZED East',      agent: 'Youssef Ali',     stage: 'contact', status: 'no_answer', subStatus: 'project',
-      details: { project: 'ZED East' }, lastActivity: daysAgo(2, 5), createdAt: daysAgo(8) },
-    { id: 'LD-10486', name: 'Reem Hamdy',     phone: '01501238846', project: 'Palm Hills',    agent: 'Mona Samir',      stage: 'contact', status: 'call_later', subStatus: '',
-      lastActivity: daysAgo(3, 2), createdAt: daysAgo(9), nextFollowUp: dayAt(-1, 16), category: 'Coastal' },
+    /* ---------------- COLD: leads being worked by Sales (Kanban) ---------------- */
+    /* Stage 1: Fresh Leads (moved here from the Fresh view) */
+    { id: 'LD-10511', name: 'Karim Adel',     phone: '01012844310', project: 'Mountain View', agent: 'Mona Samir',      platform: 'Facebook',        unit: 'Apartment', stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: minutesAgo(40),  createdAt: daysAgo(3) },
+    { id: 'LD-10509', name: 'Nadine Ahmed',   phone: '01123570098', project: 'ZED East',      agent: 'Ahmed Gad',       platform: 'Landing Page',    stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: minutesAgo(160), createdAt: daysAgo(3, 4) },
+    { id: 'LD-10507', name: 'Hany Fathy',     phone: '01224019876', project: 'Palm Hills',    agent: 'Youssef Ali',     platform: 'Existing Client', stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: daysAgo(1, 3),   createdAt: daysAgo(4) },
+    { id: 'LD-10506', name: 'Yasmin Fouad',   phone: '01556120473', project: 'Hyde Park',     agent: 'Mohamed Mahmoud', platform: 'Bayut',           stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: daysAgo(1, 7),   createdAt: daysAgo(4, 5) },
 
-    /* ---- Stage 3: Lead Qualification ---- */
-    { id: 'LD-10482', name: 'Ahmed Mohamed',  phone: '01001234567', project: 'Palm Hills',    agent: 'Ahmed Ali',       stage: 'qualification', status: 'qualified', subStatus: 'budget',
+    /* Stage 2: Contact & Follow-Up */
+    { id: 'LD-10498', name: 'Laila Mostafa',  phone: '01007719342', project: 'SODIC',         agent: 'Ahmed Ali',       platform: 'Instagram',       stage: 'contact', status: 'no_answer', subStatus: 'location',
+      details: { location: 'New Cairo', note: 'Prefers a compound close to the AUC area.' }, lastActivity: minutesAgo(55), createdAt: daysAgo(6), nextFollowUp: dayAt(1, 11) },
+    { id: 'LD-10495', name: 'Amr Salah',      phone: '01143308817', project: 'Hyde Park',     agent: 'Mohamed Mahmoud', platform: 'Google Ads',      stage: 'contact', status: 'no_answer', subStatus: 'budget',
+      details: { budget: 4500000 }, lastActivity: minutesAgo(210), createdAt: daysAgo(7), nextFollowUp: dayAt(0, 17, 30) },
+    { id: 'LD-10491', name: 'Dina Sherif',    phone: '01287765021', project: 'Mountain View', agent: 'Ahmed Gad',       platform: 'Facebook',        stage: 'contact', status: 'call_later', subStatus: '',
+      lastActivity: daysAgo(1, 1), createdAt: daysAgo(8), nextFollowUp: dayAt(0, 17) },
+    { id: 'LD-10489', name: 'Mostafa Kamel',  phone: '01019926734', project: 'ZED East',      agent: 'Youssef Ali',     platform: 'Aqarmap',         stage: 'contact', status: 'no_answer', subStatus: 'project',
+      details: { project: 'ZED East' }, lastActivity: daysAgo(2, 5), createdAt: daysAgo(9) },
+    { id: 'LD-10486', name: 'Reem Hamdy',     phone: '01501238846', project: 'Palm Hills',    agent: 'Mona Samir',      platform: 'WhatsApp',        stage: 'contact', status: 'call_later', subStatus: '',
+      lastActivity: daysAgo(3, 2), createdAt: daysAgo(10), nextFollowUp: dayAt(-1, 16) },
+
+    /* Stage 3: Lead Qualification */
+    { id: 'LD-10482', name: 'Ahmed Mohamed',  phone: '01001234567', project: 'Palm Hills',    agent: 'Ahmed Ali',       platform: 'Facebook',        unit: 'Apartment', stage: 'qualification', status: 'qualified', subStatus: 'budget',
       details: { budget: 8500000, project: 'Palm Hills', downPayment: 850000, quarter: 'Q1 2027', note: 'Looking for a 3-bedroom apartment with a garden view.' },
       lastActivity: minutesAgo(35), createdAt: daysAgo(12) },
-    { id: 'LD-10479', name: 'Rania Ahmed',    phone: '01114459023', project: 'SODIC',         agent: 'Mohamed Mahmoud', stage: 'qualification', status: 'qualified', subStatus: 'down_payment',
+    { id: 'LD-10479', name: 'Rania Ahmed',    phone: '01114459023', project: 'SODIC',         agent: 'Mohamed Mahmoud', platform: 'Referral',        stage: 'qualification', status: 'qualified', subStatus: 'down_payment',
       details: { downPayment: 1200000, budget: 12000000, project: 'SODIC' }, lastActivity: minutesAgo(320), createdAt: daysAgo(14) },
-    { id: 'LD-10476', name: 'Tamer Ibrahim',  phone: '01229087415', project: 'Hyde Park',     agent: 'Ahmed Gad',       stage: 'qualification', status: 'low_budget', subStatus: 'budget',
+    { id: 'LD-10476', name: 'Tamer Ibrahim',  phone: '01229087415', project: 'Hyde Park',     agent: 'Ahmed Gad',       platform: 'Property Finder', stage: 'qualification', status: 'low_budget', subStatus: 'budget',
       details: { budget: 2500000, project: 'Hyde Park' }, lastActivity: daysAgo(1, 4), createdAt: daysAgo(15) },
-    { id: 'LD-10472', name: 'Sherif Nabil',   phone: '01066231978', project: 'ZED East',      agent: 'Youssef Ali',     stage: 'qualification', status: 'not_interested', subStatus: 'location',
+    { id: 'LD-10472', name: 'Sherif Nabil',   phone: '01066231978', project: 'ZED East',      agent: 'Youssef Ali',     platform: 'Website',         stage: 'qualification', status: 'not_interested', subStatus: 'location',
       details: { location: 'Sheikh Zayed', note: 'Only interested in West Cairo projects.' }, lastActivity: daysAgo(2, 1), createdAt: daysAgo(17) },
-    { id: 'LD-10470', name: 'Heba Mansour',   phone: '01558804312', project: 'Mountain View', agent: 'Mona Samir',      stage: 'qualification', status: 'qualified', subStatus: 'project',
+    { id: 'LD-10470', name: 'Heba Mansour',   phone: '01558804312', project: 'Mountain View', agent: 'Mona Samir',      platform: 'Agency / Partner', stage: 'qualification', status: 'qualified', subStatus: 'project',
       details: { project: 'Mountain View', budget: 7000000 }, lastActivity: daysAgo(3, 6), createdAt: daysAgo(18) },
-    { id: 'LD-10466', name: 'Walid Shawky',   phone: '01273340561', project: '',              agent: 'Ahmed Ali',       stage: 'qualification', status: 'not_interested', subStatus: 'not_a_client',
-      details: { note: 'Asking on behalf of a company. Not a buyer.' }, lastActivity: daysAgo(5), createdAt: daysAgo(20), category: 'Commercial' },
 
-    /* ---- Stage 4: Meeting Management ---- */
-    { id: 'LD-10461', name: 'Ahmed Hassan',   phone: '01009873421', project: 'Palm Hills',    agent: 'Ahmed Ali',       stage: 'meeting', status: 'schedule_meeting', subStatus: 'office',
-      details: { office: 'New Cairo HQ', note: 'Meeting with the client and his wife.' },
-      lastActivity: minutesAgo(90), createdAt: daysAgo(21), nextFollowUp: dayAt(2, 12) },
-    { id: 'LD-10458', name: 'Sara Mohamed',   phone: '01127764090', project: 'Palm Hills',    agent: 'Mohamed Mahmoud', stage: 'meeting', status: 'meeting_done', subStatus: 'budget',
+    /* Stage 4: Meeting Management */
+    { id: 'LD-10461', name: 'Ahmed Hassan',   phone: '01009873421', project: 'Palm Hills',    agent: 'Ahmed Ali',       platform: 'Facebook',        stage: 'meeting', status: 'schedule_meeting', subStatus: 'office',
+      details: { office: 'New Cairo HQ', note: 'Meeting with the client and his wife.' }, lastActivity: minutesAgo(90), createdAt: daysAgo(21), nextFollowUp: dayAt(2, 12) },
+    { id: 'LD-10458', name: 'Sara Mohamed',   phone: '01127764090', project: 'Palm Hills',    agent: 'Mohamed Mahmoud', platform: 'Employee Referral', stage: 'meeting', status: 'meeting_done', subStatus: 'budget',
       details: { office: 'Sheikh Zayed Branch', site: 'Palm Hills October', budget: 9000000, projectName: 'Palm Hills', note: 'Liked the twin house model. Will confirm budget with family.' },
       lastActivity: minutesAgo(260), createdAt: daysAgo(25) },
-    { id: 'LD-10455', name: 'Omar Khaled',    phone: '01206618853', project: 'ZED East',      agent: 'Ahmed Gad',       stage: 'meeting', status: 'reschedule_meeting', subStatus: 'site',
-      details: { site: 'ZED East Sales Center', note: 'Client is travelling. New visit next week.' },
-      lastActivity: daysAgo(1, 2), createdAt: daysAgo(26), nextFollowUp: dayAt(5, 13) },
-    { id: 'LD-10451', name: 'Noha Ragab',     phone: '01023345786', project: 'Mountain View', agent: 'Youssef Ali',     stage: 'meeting', status: 'schedule_meeting', subStatus: 'site',
+    { id: 'LD-10455', name: 'Omar Khaled',    phone: '01206618853', project: 'ZED East',      agent: 'Ahmed Gad',       platform: 'Instagram',       stage: 'meeting', status: 'reschedule_meeting', subStatus: 'site',
+      details: { site: 'ZED East Sales Center', note: 'Client is travelling. New visit next week.' }, lastActivity: daysAgo(1, 2), createdAt: daysAgo(26), nextFollowUp: dayAt(5, 13) },
+    { id: 'LD-10451', name: 'Noha Ragab',     phone: '01023345786', project: 'Mountain View', agent: 'Youssef Ali',     platform: 'Google Ads',      stage: 'meeting', status: 'schedule_meeting', subStatus: 'site',
       details: { site: 'Mountain View iCity' }, lastActivity: daysAgo(2, 3), createdAt: daysAgo(27), nextFollowUp: dayAt(1, 15) },
-    { id: 'LD-10447', name: 'Khaled Ezzat',   phone: '01519902247', project: 'SODIC',         agent: 'Mona Samir',      stage: 'meeting', status: 'meeting_done', subStatus: 'project_name',
+    { id: 'LD-10447', name: 'Khaled Ezzat',   phone: '01519902247', project: 'SODIC',         agent: 'Mona Samir',      platform: 'Partner Referral', stage: 'meeting', status: 'meeting_done', subStatus: 'project_name',
       details: { office: 'New Cairo HQ', projectName: 'SODIC', budget: 11000000 }, lastActivity: daysAgo(4, 1), createdAt: daysAgo(30) },
 
-    /* ---- Stage 5: Deal / Closing ---- */
-    { id: 'LD-10439', name: 'Mahmoud Galal',  phone: '01005561239', project: 'Palm Hills',    agent: 'Ahmed Ali',       stage: 'deal', status: 'deal', subStatus: 'reservation',
-      details: { eoi: 100000, reservation: 500000, reservationDate: isoDay(-5), unitType: 'Apartment' },
-      lastActivity: minutesAgo(150), createdAt: daysAgo(40) },
-    { id: 'LD-10435', name: 'Mariam Adel',    phone: '01148830276', project: 'Mountain View', agent: 'Mohamed Mahmoud', stage: 'deal', status: 'deal', subStatus: 'eoi',
+    /* Stage 5: Deal / Closing */
+    { id: 'LD-10439', name: 'Mahmoud Galal',  phone: '01005561239', project: 'Palm Hills',    agent: 'Ahmed Ali',       platform: 'Website',         stage: 'deal', status: 'deal', subStatus: 'reservation',
+      details: { eoi: 100000, reservation: 500000, reservationDate: isoDay(-5), unitType: 'Apartment' }, lastActivity: minutesAgo(150), createdAt: daysAgo(40) },
+    { id: 'LD-10435', name: 'Mariam Adel',    phone: '01148830276', project: 'Mountain View', agent: 'Mohamed Mahmoud', platform: 'Facebook',        stage: 'deal', status: 'deal', subStatus: 'eoi',
       details: { eoi: 150000, unitType: 'Twin House' }, lastActivity: daysAgo(1, 5), createdAt: daysAgo(38) },
-    { id: 'LD-10430', name: 'Hossam Fawzy',   phone: '01283391054', project: 'SODIC',         agent: 'Ahmed Gad',       stage: 'deal', status: 'deal', subStatus: 'contract',
-      details: { eoi: 200000, reservation: 750000, contract: 'CN-2026-0412', reservationDate: isoDay(-18), unitType: 'Townhouse' },
-      lastActivity: daysAgo(3), createdAt: daysAgo(52) },
-    { id: 'LD-10426', name: 'Sara Hassan',    phone: '01067712380', project: 'Hyde Park',     agent: 'Youssef Ali',     stage: 'deal', status: 'deal', subStatus: 'unit_type',
+    { id: 'LD-10430', name: 'Hossam Fawzy',   phone: '01283391054', project: 'SODIC',         agent: 'Ahmed Gad',       platform: 'Broker',          stage: 'deal', status: 'deal', subStatus: 'contract',
+      details: { eoi: 200000, reservation: 750000, contract: 'CN-2026-0412', reservationDate: isoDay(-18), unitType: 'Townhouse' }, lastActivity: daysAgo(3), createdAt: daysAgo(52) },
+    { id: 'LD-10426', name: 'Sara Hassan',    phone: '01067712380', project: 'Hyde Park',     agent: 'Youssef Ali',     platform: 'Existing Client', stage: 'deal', status: 'deal', subStatus: 'unit_type',
       details: { unitType: 'Penthouse', eoi: 120000 }, lastActivity: daysAgo(6, 2), createdAt: daysAgo(47) },
   ];
 
@@ -397,15 +429,17 @@
 
   const state = {
     leads: DEMO_LEADS.map(seedLead),
-    view: 'kanban',
+    section: 'fresh',      // 'fresh' | 'cold'
+    coldView: 'kanban',    // 'kanban' | 'list'  (Fresh is list only)
     search: '',
-    filters: { stage: '', status: '', agent: '', project: '', category: '', duration: 'all' },
+    filters: { project: '', agent: '', stage: '', status: '', channel: '', platform: '' },
     collapsed: new Set(),
-    sort: {}, // stageId → 'recent' | 'name'
-    nextId: 10512,
+    nextId: 10532,
   };
 
   const findLead = (id) => state.leads.find((l) => l.id === id);
+  const isCold = () => state.section === 'cold';
+  const poolCount = (pool) => state.leads.filter((l) => l.pool === pool).length;
 
   /* ======================================================================
      6. CUSTOM SELECT COMPONENT
@@ -562,6 +596,7 @@
       button: btn,
       close,
       contains: (node) => !!(menu && menu.contains(node)),
+      reposition: () => position(),
       get value() { return value; },
       setValue(v) { value = v == null ? '' : v; renderButton(); },
       setOptions(opts, v) { options = opts; if (v !== undefined) value = v; renderButton(); },
@@ -573,54 +608,14 @@
     return api;
   }
 
-  /* ---------- Popover helpers (selects, column menus, filter panel) ---------- */
+  /* ---------- Popover handling (select menus, filter panel) ---------- */
 
-  let openPopMenu = null;
-  function closePopMenu() {
-    if (openPopMenu) { openPopMenu.el.remove(); openPopMenu.anchor.setAttribute('aria-expanded', 'false'); openPopMenu = null; }
-  }
   function closeAllPopovers(except) {
     if (openSelectApi && openSelectApi !== except) openSelectApi.close();
-    closePopMenu();
-  }
-
-  function showPopMenu(anchor, items) {
-    closeAllPopovers();
-    const el = document.createElement('div');
-    el.className = 'pop-menu';
-    el.setAttribute('role', 'menu');
-    el.innerHTML = items.map((it, i) => {
-      if (it.divider) return '<hr>';
-      if (it.label && !it.action) return `<div class="pm-label">${esc(it.label)}</div>`;
-      return `<button type="button" role="menuitem" data-i="${i}">${it.icon ? icon(it.icon) : ''}<span>${esc(it.text)}</span>${it.checked ? icon('check', 'pm-check') : ''}</button>`;
-    }).join('');
-    document.body.appendChild(el);
-    const r = anchor.getBoundingClientRect();
-    el.style.top = r.bottom + 4 + 'px';
-    el.style.left = Math.max(8, Math.min(r.right - el.offsetWidth, window.innerWidth - el.offsetWidth - 8)) + 'px';
-    el.addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-i]');
-      if (!b) return;
-      const it = items[Number(b.dataset.i)];
-      closePopMenu();
-      it.action();
-    });
-    el.addEventListener('keydown', (e) => {
-      const btns = $$('button', el);
-      const i = btns.indexOf(document.activeElement);
-      if (e.key === 'ArrowDown') { e.preventDefault(); btns[(i + 1) % btns.length].focus(); }
-      if (e.key === 'ArrowUp') { e.preventDefault(); btns[(i - 1 + btns.length) % btns.length].focus(); }
-      if (e.key === 'Escape') { e.stopPropagation(); closePopMenu(); anchor.focus(); }
-    });
-    anchor.setAttribute('aria-expanded', 'true');
-    openPopMenu = { el, anchor };
-    const first = $('button', el);
-    if (first) first.focus({ preventScroll: true });
   }
 
   document.addEventListener('mousedown', (e) => {
     if (openSelectApi && !openSelectApi.el.contains(e.target) && !openSelectApi.contains(e.target)) openSelectApi.close();
-    if (openPopMenu && !openPopMenu.el.contains(e.target) && !openPopMenu.anchor.contains(e.target)) closePopMenu();
     const panel = $('#filtersPanel');
     if (!panel.hidden && !panel.contains(e.target) && !$('#filtersBtn').contains(e.target) &&
         !(e.target.closest && e.target.closest('.cselect-menu'))) {
@@ -628,41 +623,34 @@
     }
   });
   window.addEventListener('resize', () => closeAllPopovers());
+  // Keep an open menu attached to its button while anything behind it scrolls
   document.addEventListener('scroll', (e) => {
     if (e.target && e.target.classList && e.target.classList.contains('cselect-menu')) return;
-    closeAllPopovers();
+    if (openSelectApi) openSelectApi.reposition();
   }, true);
 
   /* ======================================================================
      7. FILTERING
      ====================================================================== */
 
-  function inDuration(iso, duration) {
-    if (duration === 'all') return true;
-    const d = new Date(iso);
-    const now = new Date();
-    if (duration === 'today') return startOfDay(d).getTime() === startOfDay(now).getTime();
-    if (duration === '7d') return now - d <= 7 * 86400000;
-    if (duration === '30d') return now - d <= 30 * 86400000;
-    if (duration === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    return true;
-  }
-
   function normalizedQuery() {
     return state.search.trim().toLowerCase().replace(/^#/, '');
   }
 
-  function matchesLead(lead) {
+  function matchesLead(lead, section = state.section) {
+    if (lead.pool !== section) return false;
     const f = state.filters;
-    if (f.stage && lead.stage !== f.stage) return false;
-    if (f.status && lead.status !== f.status) return false;
-    if (f.agent && lead.agent !== f.agent) return false;
     if (f.project && lead.project !== f.project) return false;
-    if (f.category && lead.category !== f.category) return false;
-    if (!inDuration(lead.lastActivity, f.duration)) return false;
+    if (f.agent && lead.agent !== f.agent) return false;
+    if (f.channel && lead.channel !== f.channel) return false;
+    if (f.platform && lead.platform !== f.platform) return false;
+    if (section === 'cold') {
+      if (f.stage && lead.stage !== f.stage) return false;
+      if (f.status && lead.status !== f.status) return false;
+    }
     const q = normalizedQuery();
     if (q) {
-      const hay = [lead.name, lead.id, lead.project, lead.agent].join(' ').toLowerCase();
+      const hay = [lead.name, lead.id, lead.project, lead.agent, lead.platform].join(' ').toLowerCase();
       const digits = q.replace(/[\s-]/g, '');
       const phoneHit = /^\d{3,}$/.test(digits) && lead.phone.includes(digits);
       if (!hay.includes(q) && !phoneHit) return false;
@@ -670,12 +658,13 @@
     return true;
   }
 
-  function activeFilterCount() {
+  /* Filters that live in the Filters panel (the toolbar shows the others) */
+  function panelFilterCount() {
     const f = state.filters;
-    return ['stage', 'status', 'agent', 'project', 'category'].filter((k) => f[k]).length + (f.duration !== 'all' ? 1 : 0);
+    const keys = isCold() ? ['stage', 'status', 'channel', 'platform'] : ['channel', 'platform'];
+    return keys.filter((k) => f[k]).length;
   }
 
-  /* Wrap search matches in <mark>, escaping everything else */
   function hl(text) {
     const q = normalizedQuery();
     const s = String(text || '');
@@ -685,15 +674,8 @@
     return esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + q.length)) + '</mark>' + esc(s.slice(i + q.length));
   }
 
-  function sortLeads(list, mode) {
-    const arr = list.slice();
-    if (mode === 'name') arr.sort((a, b) => a.name.localeCompare(b.name));
-    else arr.sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
-    return arr;
-  }
-
   /* ======================================================================
-     8. RENDERING — BOARD
+     8. RENDERING
      ====================================================================== */
 
   const boardEl = $('#board');
@@ -703,25 +685,27 @@
     const st = STATUS_CONFIG[statusId];
     return `<span class="badge-status tone-${st.tone}"><span class="dot"></span>${esc(st.label)}</span>`;
   }
-  function stateBadges(lead, sepCls = 'lc-sep') {
+  function stateBadges(lead) {
     const sub = subStatusOf(lead.status, lead.subStatus);
-    return statusBadge(lead.status) + (sub ? icon('chevronRight', sepCls) + `<span class="badge-sub">${esc(sub.label)}</span>` : '');
+    return statusBadge(lead.status) + (sub ? icon('chevronRight', 'lc-sep') + `<span class="badge-sub">${esc(sub.label)}</span>` : '');
+  }
+  function agentHTML(name) {
+    if (!name) return '<span class="lc-agent"><span class="unassigned">Unassigned</span></span>';
+    return `<span class="lc-agent">${avatar(name)}<span class="lc-agent-name">${hl(name)}</span></span>`;
+  }
+  function sourceText(lead) {
+    const ch = channelById(lead.channel);
+    if (!ch) return '';
+    return lead.platform ? `${ch.label} · ${lead.platform}` : ch.label;
   }
 
-  /* The card's context line: the value of the field the sub-status points at */
-  function cardContext(lead) {
-    const sub = subStatusOf(lead.status, lead.subStatus);
-    if (!sub) return '';
-    const value = lead.details[sub.field];
-    if (value == null || value === '') return '';
-    if (sub.field === 'note') return `<div class="lc-context" title="${esc(value)}"><em>“${esc(value)}”</em></div>`;
-    return `<div class="lc-context"><span>${esc(FIELD_DEFS[sub.field].label)}:</span> <strong>${esc(fieldDisplay(sub.field, value))}</strong></div>`;
-  }
-
-  function followUpLine(lead) {
-    if (!lead.nextFollowUp) return '';
-    const overdue = new Date(lead.nextFollowUp) < new Date();
-    return `<div class="lc-followup${overdue ? ' is-overdue' : ''}">${icon('calendar')}${overdue ? 'Overdue follow-up' : 'Follow-up'} · ${esc(relativeTime(lead.nextFollowUp))}</div>`;
+  /* Footer time: upcoming / overdue follow-up wins over last activity */
+  function cardTime(lead) {
+    if (lead.nextFollowUp) {
+      const overdue = new Date(lead.nextFollowUp) < new Date();
+      return `<span class="lc-time is-followup${overdue ? ' is-overdue' : ''}" title="${overdue ? 'Overdue follow-up' : 'Next follow-up'}">${icon('calendar')}${esc(relativeTime(lead.nextFollowUp))}</span>`;
+    }
+    return `<span class="lc-time" title="Last activity">${icon('clock')}${esc(relativeTime(lead.lastActivity))}</span>`;
   }
 
   function cardHTML(lead) {
@@ -735,102 +719,154 @@
         <div class="lc-meta">
           <span class="lc-phone">${icon('phone')}${esc(formatPhone(lead.phone))}</span>
           ${lead.project ? `<span>${icon('building')}${hl(lead.project)}</span>` : ''}
+          ${lead.platform ? `<span class="lc-source" title="${esc(sourceText(lead))}">${icon('share')}${hl(lead.platform)}</span>` : ''}
         </div>
         <div class="lc-state">${stateBadges(lead)}</div>
-        ${cardContext(lead)}
-        ${followUpLine(lead)}
-        <div class="lc-foot">
-          <span class="lc-agent">${avatar(lead.agent)}<span class="lc-agent-name">${hl(lead.agent)}</span></span>
-          <span class="lc-time" title="Last activity">${icon('clock')}${esc(relativeTime(lead.lastActivity))}</span>
-        </div>
+        <div class="lc-foot">${agentHTML(lead.agent)}${cardTime(lead)}</div>
       </article>`;
   }
 
-  function columnHTML(stage, index, visible) {
-    const all = state.leads.filter((l) => l.stage === stage.id);
-    const shown = sortLeads(visible.filter((l) => l.stage === stage.id), state.sort[stage.id]);
+  function columnHTML(stage, visible) {
+    const all = state.leads.filter((l) => l.pool === 'cold' && l.stage === stage.id);
+    const shown = visible.filter((l) => l.stage === stage.id)
+      .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
     const filtering = shown.length !== all.length;
     const collapsed = state.collapsed.has(stage.id);
-    const countHTML = filtering
-      ? `<b>${shown.length}</b><span> of ${all.length} Leads shown</span>`
-      : `<b>${all.length}</b><span> ${all.length === 1 ? 'Lead' : 'Leads'}</span>`;
-
-    const chips = statusesForStage(stage.id).map((sid) => {
-      const st = STATUS_CONFIG[sid];
-      const n = shown.filter((l) => l.status === sid).length;
-      const active = state.filters.status === sid;
-      return `<button type="button" class="status-chip tone-${st.tone}${active ? ' is-active' : ''}${n === 0 ? ' is-zero' : ''}"
-        data-action="status-filter" data-status="${sid}" aria-pressed="${active}"
-        title="${active ? 'Show all statuses' : 'Show only ' + esc(st.label)}"><span class="dot"></span>${esc(st.label)} <b>${n}</b></button>`;
-    }).join('');
-
     let body;
-    if (shown.length) {
-      body = shown.map(cardHTML).join('');
-    } else if (all.length === 0) {
-      body = `<div class="col-empty">${icon('inbox')}<strong>No leads in this stage</strong>Drag a lead here to move it.</div>`;
-    } else {
-      body = `<div class="col-empty">${icon('search')}<strong>No matching leads</strong>Adjust the search or filters.</div>`;
-    }
+    if (shown.length) body = shown.map(cardHTML).join('');
+    else if (!all.length) body = '<div class="col-empty"><strong>No record found.</strong></div>';
+    else body = '<div class="col-empty"><strong>No matching leads</strong>Adjust the search or filters.</div>';
 
     return `
       <section class="column${collapsed ? ' is-collapsed' : ''}" data-stage="${stage.id}" style="--stage:${stage.color}" aria-label="${esc(stage.name)}">
         <header class="col-head">
-          <div class="col-title-row">
-            <span class="stage-num" title="Stage ${index + 1} of ${STAGES.length}">${index + 1}</span>
-            <div class="col-title-text">
-              <h2 class="col-title">${esc(stage.name)}</h2>
-              <span class="col-count" aria-label="${shown.length} leads">${countHTML}</span>
-            </div>
-            <div class="col-actions">
-              <button type="button" class="icon-btn" data-action="collapse" title="${collapsed ? 'Expand column' : 'Collapse column'}" aria-label="${collapsed ? 'Expand' : 'Collapse'} ${esc(stage.name)}">${icon(collapsed ? 'expand' : 'collapse')}</button>
-              <button type="button" class="icon-btn col-menu-btn" data-action="menu" title="Stage options" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(stage.name)} options">${icon('more')}</button>
-            </div>
-          </div>
-          <div class="col-statuses">${chips}</div>
+          <span class="dot"></span>
+          <h2 class="col-title">${esc(stage.name)}</h2>
+          <span class="col-count" title="${filtering ? `${shown.length} of ${all.length} leads shown` : `${all.length} leads`}">${filtering ? `${shown.length}/${all.length}` : all.length}</span>
+          <button type="button" class="icon-btn col-collapse" data-action="collapse" title="${collapsed ? 'Expand' : 'Collapse'}" aria-label="${collapsed ? 'Expand' : 'Collapse'} ${esc(stage.name)}">${icon(collapsed ? 'expand' : 'collapse')}</button>
         </header>
         <div class="col-body">
           ${body}
-          <div class="drop-hint">${icon('arrowRight')}Drop to move to ${esc(stage.name)}</div>
+          <div class="drop-hint">${icon('arrowRight')}Move to ${esc(stage.name)}</div>
         </div>
       </section>`;
   }
 
-  function listHTML(visible) {
-    const rows = visible
-      .slice()
+  function emptyRow(cols, freshView) {
+    const filtered = state.search.trim() || Object.values(state.filters).some(Boolean);
+    const title = filtered ? 'No matching leads' : (freshView ? 'No fresh leads' : 'No record found.');
+    const text = filtered ? 'Adjust the search or filters.' : (freshView ? 'New incoming leads appear here.' : '');
+    return `<tr class="lt-empty"><td colspan="${cols}"><strong>${title}</strong>${text}</td></tr>`;
+  }
+
+  function freshListHTML(visible) {
+    const rows = visible.slice()
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map((l) => `<tr tabindex="0" data-id="${esc(l.id)}">
+          <td class="lt-name"><strong>${hl(l.name)}</strong><small>#${hl(l.id)}</small></td>
+          <td class="lt-num">${esc(formatPhone(l.phone))}</td>
+          <td>${l.project ? hl(l.project) : '<span class="lt-muted">--</span>'}</td>
+          <td${l.budget ? ' class="lt-num"' : ''}>${l.budget ? esc(formatMoney(l.budget)) : '<span class="lt-muted">--</span>'}</td>
+          <td>${l.unit ? esc(l.unit) : '<span class="lt-muted">--</span>'}</td>
+          <td>${agentHTML(l.agent)}</td>
+          <td class="lt-source">${l.channel ? `<b>${esc(channelById(l.channel).label)}</b>${l.platform ? ' · ' + hl(l.platform) : ''}` : '--'}</td>
+          <td class="lt-muted">${esc(relativeTime(l.createdAt))}</td>
+          <td>${statusBadge(l.status)}</td>
+          <td class="lt-actions"><button type="button" class="btn btn-secondary btn-xs" data-action="to-cold" title="Start working this lead in the Cold pipeline">Move to Cold${icon('arrowRight')}</button></td>
+        </tr>`).join('');
+    return `<table class="lead-table">
+      <thead><tr><th>Name</th><th>Number</th><th>Project</th><th>Budget</th><th>Unit</th><th>Sales Name</th><th>Channel · Platform</th><th>Created</th><th>Status</th><th class="lt-actions"></th></tr></thead>
+      <tbody>${rows || emptyRow(10, true)}</tbody>
+    </table>`;
+  }
+
+  function coldListHTML(visible) {
+    const rows = visible.slice()
       .sort((a, b) => stageIndex(a.stage) - stageIndex(b.stage) || new Date(b.lastActivity) - new Date(a.lastActivity))
       .map((l) => {
         const stage = stageById(l.stage);
         return `<tr tabindex="0" data-id="${esc(l.id)}">
           <td class="lt-name"><strong>${hl(l.name)}</strong><small>#${hl(l.id)}</small></td>
-          <td class="lt-muted" style="color:var(--text-2)">${esc(formatPhone(l.phone))}</td>
-          <td>${l.project ? hl(l.project) : '<span class="lt-muted">—</span>'}</td>
+          <td class="lt-num">${esc(formatPhone(l.phone))}</td>
+          <td>${l.project ? hl(l.project) : '<span class="lt-muted">--</span>'}</td>
           <td><span class="lt-stage"><span class="dot" style="--c:${stage.color}"></span>${esc(stage.name)}</span></td>
           <td><div class="lt-state">${stateBadges(l)}</div></td>
-          <td><span class="lc-agent">${avatar(l.agent)}${hl(l.agent)}</span></td>
-          <td class="lt-muted">${esc(relativeTime(l.lastActivity))}</td>
+          <td>${agentHTML(l.agent)}</td>
+          <td class="lt-source">${l.platform ? hl(l.platform) : '--'}</td>
+          <td>${cardTime(l)}</td>
         </tr>`;
       }).join('');
     return `<table class="lead-table">
-      <thead><tr><th>Lead</th><th>Phone</th><th>Project</th><th>Stage</th><th>Status › Sub-status</th><th>Assigned To</th><th>Last Activity</th></tr></thead>
-      <tbody>${rows || `<tr class="lt-empty"><td colspan="7">No leads match your search or filters.</td></tr>`}</tbody>
+      <thead><tr><th>Name</th><th>Number</th><th>Project</th><th>Stage</th><th>Status › Sub-status</th><th>Sales Name</th><th>Platform</th><th>Last Activity / Follow-up</th></tr></thead>
+      <tbody>${rows || emptyRow(8, false)}</tbody>
     </table>`;
   }
 
   function render() {
-    const visible = state.leads.filter(matchesLead);
-    if (state.view === 'kanban') {
+    const visible = state.leads.filter((l) => matchesLead(l));
+    const kanban = isCold() && state.coldView === 'kanban';
+    boardEl.hidden = !kanban;
+    listEl.hidden = kanban;
+    if (kanban) {
       const scroll = boardEl.scrollLeft;
       const colScroll = {};
       $$('.column', boardEl).forEach((c) => { colScroll[c.dataset.stage] = $('.col-body', c).scrollTop; });
-      boardEl.innerHTML = STAGES.map((s, i) => columnHTML(s, i, visible)).join('');
+      boardEl.innerHTML = STAGES.map((s) => columnHTML(s, visible)).join('');
       boardEl.scrollLeft = scroll;
-      $$('.column', boardEl).forEach((c) => { const b = $('.col-body', c); if (colScroll[c.dataset.stage]) b.scrollTop = colScroll[c.dataset.stage]; });
+      $$('.column', boardEl).forEach((c) => { if (colScroll[c.dataset.stage]) $('.col-body', c).scrollTop = colScroll[c.dataset.stage]; });
     } else {
-      listEl.innerHTML = listHTML(visible);
+      listEl.innerHTML = isCold() ? coldListHTML(visible) : freshListHTML(visible);
     }
+    renderChrome();
     renderActiveFilters(visible.length);
+  }
+
+  /* Tabs, sidebar, breadcrumb, counts, view toggle */
+  function renderChrome() {
+    const cold = isCold();
+    const fresh = poolCount('fresh'), coldN = poolCount('cold');
+    $('#tabFreshCount').textContent = fresh;
+    $('#tabColdCount').textContent = coldN;
+    $('#sbFreshCount').textContent = fresh;
+    $('#sbColdCount').textContent = coldN;
+    $$('.sec-tab').forEach((t) => {
+      const on = t.dataset.section === state.section;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', String(on));
+    });
+    $$('.sb-subitem2').forEach((a) => {
+      const on = a.dataset.section === state.section;
+      a.classList.toggle('is-active', on);
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    $('#crumbSection').textContent = cold ? 'Cold' : 'Fresh';
+    $('#sectionCaption').textContent = cold ? 'Leads currently being worked by Sales' : 'New incoming leads, not yet in the sales pipeline';
+    $('#viewToggle').hidden = !cold;
+    $$('.vt-btn').forEach((b) => {
+      const on = b.dataset.view === state.coldView;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    $$('[data-cold-only]').forEach((el) => { el.hidden = !cold; });
+    const n = panelFilterCount();
+    $('#filtersCount').textContent = n;
+    $('#filtersCount').hidden = n === 0;
+  }
+
+  function setSection(section) {
+    if (section !== 'fresh' && section !== 'cold') return;
+    state.section = section;
+    try { history.replaceState(null, '', '#' + section); } catch (e) { /* file:// or sandbox */ }
+    toggleFiltersPanel(false);
+    closeAllPopovers();
+    syncFilterControls();
+    render();
+    if ($('#app').classList.contains('is-nav-open')) $('#app').classList.remove('is-nav-open');
+  }
+
+  function setColdView(view) {
+    state.coldView = view;
+    render();
   }
 
   /* ======================================================================
@@ -839,49 +875,55 @@
 
   const searchInput = $('#searchInput');
   const searchClear = $('#searchClear');
+  const controls = {};
 
-  const agentOptions = (allLabel) => [{ value: '', label: allLabel }].concat(AGENTS.map((a) => ({ value: a, label: a, hint: a === CURRENT_USER ? 'You' : '' })));
-  const projectOptions = (allLabel) => [{ value: '', label: allLabel }].concat(PROJECTS.map((p) => ({ value: p, label: p })));
-  const stageOptions = (allLabel) => [{ value: '', label: allLabel }].concat(STAGES.map((s) => ({ value: s.id, label: s.name, color: s.color })));
+  const allOption = (label) => [{ value: '', label }];
+  const agentOptions = (label) => allOption(label).concat(AGENTS.map((a) => ({ value: a, label: a, hint: a === CURRENT_USER ? 'You' : '' })));
+  const projectOptions = (label) => allOption(label).concat(PROJECTS.map((p) => ({ value: p, label: p })));
+  const stageOptions = (label) => allOption(label).concat(STAGES.map((s) => ({ value: s.id, label: s.name, color: s.color })));
+  const channelOptions = (label) => allOption(label).concat(CHANNELS.map((c) => ({ value: c.id, label: c.label })));
+
+  /* Platform options follow the selected channel; with no channel they are grouped */
+  function platformOptions(channelId, label) {
+    const chans = channelId ? [channelById(channelId)] : CHANNELS;
+    const opts = label ? allOption(label) : [];
+    chans.forEach((c) => c.platforms.forEach((p) => opts.push({ value: p, label: p, group: channelId ? null : c.label })));
+    return opts;
+  }
   function statusFilterOptions() {
     const stages = state.filters.stage ? [stageById(state.filters.stage)] : STAGES;
-    const opts = [{ value: '', label: 'All statuses' }];
+    const opts = allOption('All statuses');
     stages.forEach((s) => statusesForStage(s.id).forEach((sid) =>
       opts.push({ value: sid, label: STATUS_CONFIG[sid].label, color: toneDot(sid), group: s.name })));
     return opts;
   }
 
-  const controls = {};
-
   function setFilter(key, value) {
-    state.filters[key] = value;
-    if (key === 'stage' && value && state.filters.status && STATUS_CONFIG[state.filters.status].stage !== value) {
-      state.filters.status = '';
-    }
+    const f = state.filters;
+    f[key] = value;
+    if (key === 'stage' && value && f.status && STATUS_CONFIG[f.status].stage !== value) f.status = '';
+    if (key === 'channel' && value && f.platform && channelOf(f.platform) !== value) f.platform = '';
+    if (key === 'platform' && value) f.channel = channelOf(value);
     syncFilterControls();
     render();
   }
 
   function initToolbar() {
-    controls.duration = createSelect({ id: 'durationBtn', variant: 'inline', labelledBy: 'lblDuration', options: DURATIONS, value: 'all', onChange: (v) => setFilter('duration', v) });
-    controls.pipeline = createSelect({ id: 'pipelineBtn', variant: 'inline', labelledBy: 'lblPipeline', options: [{ value: 'sales', label: 'Sales Pipeline' }], value: 'sales' });
-    controls.category = createSelect({ id: 'categoryBtn', variant: 'inline', labelledBy: 'lblCategory', options: [{ value: '', label: 'All' }].concat(CATEGORIES.map((c) => ({ value: c, label: c }))), value: '', onChange: (v) => setFilter('category', v) });
+    controls.pipeline = createSelect({ id: 'pipelineBtn', variant: 'inline', labelledBy: 'lblPipeline', options: PIPELINES, value: 'sales' });
     controls.project = createSelect({ id: 'projectBtn', variant: 'inline', labelledBy: 'lblProject', options: projectOptions('All'), value: '', onChange: (v) => setFilter('project', v) });
-    $('#durationSelect').appendChild(controls.duration.el);
+    controls.agent = createSelect({ id: 'agentBtn', variant: 'inline', labelledBy: 'lblAgent', options: agentOptions('All'), value: '', onChange: (v) => setFilter('agent', v) });
     $('#pipelineSelect').appendChild(controls.pipeline.el);
-    $('#categorySelect').appendChild(controls.category.el);
     $('#projectSelect').appendChild(controls.project.el);
+    $('#agentSelect').appendChild(controls.agent.el);
 
     controls.fStage = createSelect({ id: 'fStageBtn', labelledBy: 'lblFStage', options: stageOptions('All stages'), value: '', onChange: (v) => setFilter('stage', v) });
     controls.fStatus = createSelect({ id: 'fStatusBtn', labelledBy: 'lblFStatus', options: statusFilterOptions(), value: '', onChange: (v) => setFilter('status', v) });
-    controls.fAgent = createSelect({ id: 'fAgentBtn', labelledBy: 'lblFAgent', options: agentOptions('All agents'), value: '', onChange: (v) => setFilter('agent', v) });
-    controls.fProject = createSelect({ id: 'fProjectBtn', labelledBy: 'lblFProject', options: projectOptions('All projects'), value: '', onChange: (v) => setFilter('project', v) });
-    controls.fActivity = createSelect({ id: 'fActivityBtn', labelledBy: 'lblFActivity', options: DURATIONS.map((d) => ({ value: d.value, label: d.value === 'all' ? 'Any time' : d.label })), value: 'all', onChange: (v) => setFilter('duration', v) });
-    $('#fStage').appendChild(controls.fStage.el);
-    $('#fStatus').appendChild(controls.fStatus.el);
-    $('#fAgent').appendChild(controls.fAgent.el);
-    $('#fProject').appendChild(controls.fProject.el);
-    $('#fActivity').appendChild(controls.fActivity.el);
+    controls.fChannel = createSelect({ id: 'fChannelBtn', labelledBy: 'lblFChannel', options: channelOptions('All channels'), value: '', onChange: (v) => setFilter('channel', v) });
+    controls.fPlatform = createSelect({ id: 'fPlatformBtn', labelledBy: 'lblFPlatform', options: platformOptions('', 'All platforms'), value: '', onChange: (v) => setFilter('platform', v) });
+    $('#fpStage').appendChild(controls.fStage.el);
+    $('#fpStatus').appendChild(controls.fStatus.el);
+    $('#fpChannel').appendChild(controls.fChannel.el);
+    $('#fpPlatform').appendChild(controls.fPlatform.el);
 
     searchInput.addEventListener('input', () => {
       state.search = searchInput.value;
@@ -901,9 +943,10 @@
       if (e.key === 'Escape') { e.stopPropagation(); toggleFiltersPanel(false); $('#filtersBtn').focus(); }
     });
 
-    $$('.vt-btn').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
-    $('#addLeadBtn').addEventListener('click', () => openModal(null, {}));
-    $('#topAddBtn').addEventListener('click', () => openModal(null, {}));
+    $$('.vt-btn').forEach((b) => b.addEventListener('click', () => setColdView(b.dataset.view)));
+    $$('.sec-tab').forEach((t) => t.addEventListener('click', () => setSection(t.dataset.section)));
+    $('#addLeadBtn').addEventListener('click', () => openIntakeModal(null));
+    $('#topAddBtn').addEventListener('click', () => openIntakeModal(null));
   }
 
   function clearSearch() {
@@ -919,11 +962,14 @@
     if (show) closeAllPopovers();
     panel.hidden = !show;
     $('#filtersBtn').setAttribute('aria-expanded', String(show));
-    if (show) { updateFiltersResult(); controls.fStage.button.focus(); }
+    if (show) {
+      updateFiltersResult();
+      (isCold() ? controls.fStage : controls.fChannel).button.focus();
+    }
   }
 
   function resetFilters(includeSearch) {
-    Object.assign(state.filters, { stage: '', status: '', agent: '', project: '', category: '', duration: 'all' });
+    Object.keys(state.filters).forEach((k) => { state.filters[k] = ''; });
     if (includeSearch) { searchInput.value = ''; state.search = ''; searchClear.hidden = true; }
     syncFilterControls();
     render();
@@ -931,44 +977,39 @@
 
   function syncFilterControls() {
     const f = state.filters;
-    controls.duration.setValue(f.duration);
-    controls.category.setValue(f.category);
     controls.project.setValue(f.project);
+    controls.agent.setValue(f.agent);
     controls.fStage.setValue(f.stage);
     controls.fStatus.setOptions(statusFilterOptions(), f.status);
-    controls.fAgent.setValue(f.agent);
-    controls.fProject.setValue(f.project);
-    controls.fActivity.setValue(f.duration);
-    const n = activeFilterCount();
-    const badge = $('#filtersCount');
-    badge.textContent = n;
-    badge.hidden = n === 0;
+    controls.fChannel.setValue(f.channel);
+    controls.fPlatform.setOptions(platformOptions(f.channel, 'All platforms'), f.platform);
   }
 
   function updateFiltersResult() {
-    const n = state.leads.filter(matchesLead).length;
-    $('#filtersResult').textContent = `${n} of ${state.leads.length} leads match`;
+    const total = poolCount(state.section);
+    const n = state.leads.filter((l) => matchesLead(l)).length;
+    $('#filtersResult').textContent = `${n} of ${total} ${isCold() ? 'cold' : 'fresh'} leads match`;
   }
 
   function renderActiveFilters(visibleCount) {
     const f = state.filters;
     const chips = [];
     if (state.search.trim()) chips.push({ key: 'search', label: 'Search', value: `“${state.search.trim()}”` });
-    if (f.stage) chips.push({ key: 'stage', label: 'Stage', value: stageById(f.stage).name });
-    if (f.status) chips.push({ key: 'status', label: 'Status', value: STATUS_CONFIG[f.status].label });
-    if (f.agent) chips.push({ key: 'agent', label: 'Agent', value: f.agent });
     if (f.project) chips.push({ key: 'project', label: 'Project', value: f.project });
-    if (f.category) chips.push({ key: 'category', label: 'Category', value: f.category });
-    if (f.duration !== 'all') chips.push({ key: 'duration', label: 'Last activity', value: DURATIONS.find((d) => d.value === f.duration).label });
+    if (f.agent) chips.push({ key: 'agent', label: 'Agent', value: f.agent });
+    if (isCold() && f.stage) chips.push({ key: 'stage', label: 'Stage', value: stageById(f.stage).name });
+    if (isCold() && f.status) chips.push({ key: 'status', label: 'Status', value: STATUS_CONFIG[f.status].label });
+    if (f.channel) chips.push({ key: 'channel', label: 'Channel', value: channelById(f.channel).label });
+    if (f.platform) chips.push({ key: 'platform', label: 'Platform', value: f.platform });
 
-    const wrap = $('#activeFilters');
     if (!$('#filtersPanel').hidden) updateFiltersResult();
+    const wrap = $('#activeFilters');
     if (!chips.length) { wrap.hidden = true; wrap.innerHTML = ''; return; }
     wrap.hidden = false;
     wrap.innerHTML =
-      `<span class="af-result">Showing <strong>${visibleCount}</strong> of ${state.leads.length} leads</span>` +
+      `<span class="af-result">Showing <strong>${visibleCount}</strong> of ${poolCount(state.section)} leads</span>` +
       chips.map((c) => `<span class="af-chip">${esc(c.label)}: <b>${esc(c.value)}</b><button type="button" data-clear="${c.key}" aria-label="Remove ${esc(c.label)} filter">${icon('x')}</button></span>`).join('') +
-      `<button type="button" class="link-btn" data-clear="all">Clear all</button>`;
+      '<button type="button" class="link-btn" data-clear="all">Clear all</button>';
   }
 
   $('#activeFilters').addEventListener('click', (e) => {
@@ -977,83 +1018,104 @@
     const key = b.dataset.clear;
     if (key === 'all') return resetFilters(true);
     if (key === 'search') return clearSearch();
-    setFilter(key, key === 'duration' ? 'all' : '');
+    setFilter(key, '');
   });
 
-  function setView(view) {
-    state.view = view;
-    $$('.vt-btn').forEach((b) => {
-      const on = b.dataset.view === view;
-      b.classList.toggle('is-active', on);
-      b.setAttribute('aria-pressed', String(on));
+  /* ======================================================================
+     10. SIDEBAR
+     ====================================================================== */
+
+  function initSidebar() {
+    const app = $('#app');
+    try { if (localStorage.getItem('salesDemo.sidebar') === 'collapsed') app.classList.add('is-sb-collapsed'); } catch (e) { /* storage blocked */ }
+
+    $('#sbLeads').addEventListener('click', () => {
+      if (app.classList.contains('is-sb-collapsed')) { app.classList.remove('is-sb-collapsed'); saveSidebar(); }
+      const g = $('#sbLeadsGroup');
+      g.classList.toggle('is-open');
+      $('#sbLeads').setAttribute('aria-expanded', String(g.classList.contains('is-open')));
     });
-    boardEl.hidden = view !== 'kanban';
-    listEl.hidden = view !== 'list';
-    render();
+    $$('[data-section]', $('#sidebar')).forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      setSection(a.dataset.section);
+    }));
+    $$('[data-nav]', $('#sidebar')).forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (a.dataset.nav === 'Deals') return setSection(state.section);
+      toast(a.dataset.nav, `${a.dataset.nav} is outside this Sales prototype.`, 'info');
+    }));
+    $('#sbToggle').addEventListener('click', () => {
+      app.classList.toggle('is-sb-collapsed');
+      saveSidebar();
+      const collapsed = app.classList.contains('is-sb-collapsed');
+      $('#sbToggle').setAttribute('aria-label', collapsed ? 'Expand menu' : 'Collapse menu');
+      $('#sbToggle').title = collapsed ? 'Expand menu' : 'Collapse menu';
+    });
+    $('#menuBtn').addEventListener('click', () => app.classList.toggle('is-nav-open'));
+    $('#sbOverlay').addEventListener('click', () => app.classList.remove('is-nav-open'));
+
+    function saveSidebar() {
+      try { localStorage.setItem('salesDemo.sidebar', app.classList.contains('is-sb-collapsed') ? 'collapsed' : 'open'); } catch (e) { /* storage blocked */ }
+    }
   }
 
   /* ======================================================================
-     10. BOARD INTERACTIONS (click, keyboard, column menu, drag & drop)
+     11. LIST + BOARD INTERACTIONS (click, keyboard, drag & drop)
      ====================================================================== */
 
+  function openLead(id) {
+    const lead = findLead(id);
+    if (!lead) return;
+    if (lead.pool === 'fresh') openIntakeModal(id);
+    else openLeadModal(id, {});
+  }
+
   boardEl.addEventListener('click', (e) => {
-    const actionBtn = e.target.closest('[data-action]');
     const column = e.target.closest('.column');
-    if (actionBtn) {
-      const stageId = column.dataset.stage;
-      const action = actionBtn.dataset.action;
-      if (action === 'collapse') {
-        state.collapsed.has(stageId) ? state.collapsed.delete(stageId) : state.collapsed.add(stageId);
-        render();
-      } else if (action === 'menu') {
-        openColumnMenu(actionBtn, stageId);
-      } else if (action === 'status-filter') {
-        const sid = actionBtn.dataset.status;
-        setFilter('status', state.filters.status === sid ? '' : sid);
-      }
-      return;
-    }
-    if (column && column.classList.contains('is-collapsed')) {
-      state.collapsed.delete(column.dataset.stage);
+    if (e.target.closest('[data-action="collapse"]') || (column && column.classList.contains('is-collapsed'))) {
+      const id = column.dataset.stage;
+      state.collapsed.has(id) ? state.collapsed.delete(id) : state.collapsed.add(id);
       render();
       return;
     }
     const card = e.target.closest('.lead-card');
-    if (card) openModal(card.dataset.id, {});
+    if (card) openLead(card.dataset.id);
   });
-
   boardEl.addEventListener('keydown', (e) => {
     const card = e.target.closest('.lead-card');
-    if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openModal(card.dataset.id, {}); }
+    if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLead(card.dataset.id); }
   });
 
   listEl.addEventListener('click', (e) => {
     const row = e.target.closest('tr[data-id]');
-    if (row) openModal(row.dataset.id, {});
+    if (!row) return;
+    if (e.target.closest('[data-action="to-cold"]')) return requestMoveToCold(row.dataset.id);
+    openLead(row.dataset.id);
   });
   listEl.addEventListener('keydown', (e) => {
     const row = e.target.closest('tr[data-id]');
-    if (row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openModal(row.dataset.id, {}); }
+    if (row && e.target === row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLead(row.dataset.id); }
   });
 
-  function openColumnMenu(anchor, stageId) {
-    if (openPopMenu && openPopMenu.anchor === anchor) return closePopMenu();
-    const sort = state.sort[stageId] || 'recent';
-    const collapsed = state.collapsed.has(stageId);
-    showPopMenu(anchor, [
-      { text: 'Add lead to this stage', icon: 'plus', action: () => openModal(null, { stage: stageId }) },
-      { divider: true },
-      { label: 'Sort cards' },
-      { text: 'Latest activity first', icon: 'sortDesc', checked: sort === 'recent', action: () => { state.sort[stageId] = 'recent'; render(); } },
-      { text: 'Client name (A–Z)', icon: 'sortAlpha', checked: sort === 'name', action: () => { state.sort[stageId] = 'name'; render(); } },
-      { divider: true },
-      { text: collapsed ? 'Expand column' : 'Collapse column', icon: collapsed ? 'expand' : 'collapse', action: () => { collapsed ? state.collapsed.delete(stageId) : state.collapsed.add(stageId); render(); } },
-    ]);
+  /* Fresh → Cold: the lead enters the Cold pipeline in the Fresh Leads stage */
+  function requestMoveToCold(id) {
+    const lead = findLead(id);
+    if (!lead.agent) {
+      openIntakeModal(id, 'Assign a Sales Name before moving this lead to Cold.');
+      return;
+    }
+    moveToCold(lead);
   }
 
-  /* ---- Drag & drop: dropping on another stage opens the update modal ---- */
-  let dragId = null;
+  function moveToCold(lead) {
+    const now = new Date().toISOString();
+    Object.assign(lead, { pool: 'cold', stage: 'fresh', status: 'fresh_lead', subStatus: '', lastActivity: now });
+    lead.history.unshift({ at: now, by: CURRENT_USER, text: 'Moved to Cold › Fresh Leads' });
+    render();
+    toast('Moved to Cold', `${lead.name} is now in Cold › Fresh Leads.`);
+  }
 
+  let dragId = null;
   function clearDropTargets() {
     $$('.column.is-drop-target', boardEl).forEach((c) => c.classList.remove('is-drop-target'));
   }
@@ -1073,106 +1135,52 @@
       if (src) src.classList.add('is-source');
     });
   });
-
   boardEl.addEventListener('dragend', () => {
     dragId = null;
     boardEl.classList.remove('is-dragging');
     $$('.is-dragging, .is-source', boardEl).forEach((el) => el.classList.remove('is-dragging', 'is-source'));
     clearDropTargets();
   });
-
   boardEl.addEventListener('dragover', (e) => {
     if (!dragId) return;
     const col = e.target.closest('.column');
     if (!col) return;
-    const lead = findLead(dragId);
-    if (col.dataset.stage === lead.stage) { e.dataTransfer.dropEffect = 'none'; clearDropTargets(); return; }
+    if (col.dataset.stage === findLead(dragId).stage) { e.dataTransfer.dropEffect = 'none'; clearDropTargets(); return; }
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     if (!col.classList.contains('is-drop-target')) { clearDropTargets(); col.classList.add('is-drop-target'); }
   });
-
   boardEl.addEventListener('dragleave', (e) => {
     const col = e.target.closest('.column');
     if (col && !col.contains(e.relatedTarget)) col.classList.remove('is-drop-target');
   });
-
   boardEl.addEventListener('drop', (e) => {
     const col = e.target.closest('.column');
     if (!col || !dragId) return;
     e.preventDefault();
     const id = dragId;
-    const lead = findLead(id);
     const target = col.dataset.stage;
     boardEl.dispatchEvent(new Event('dragend'));
-    if (lead && target !== lead.stage) openModal(id, { targetStage: target });
+    if (target !== findLead(id).stage) openLeadModal(id, { targetStage: target });
   });
 
   /* ======================================================================
-     11. LEAD UPDATE MODAL
-     One centered dialog: lead info on the left, Stage → Status →
-     Sub-status → Related data on the right.
+     12. MODALS
+     One centered dialog, two layouts:
+       intake    → Add Lead / update a Fresh lead (creation fields)
+       workflow  → Cold lead: Stage → Status → Sub-status → Related details
      ====================================================================== */
 
   const backdrop = $('#modalBackdrop');
   const modalEl = $('#modal');
+  const modal = { open: false, kind: '', mode: '', lead: null, draft: null, selects: {}, returnFocus: null, downOnBackdrop: false };
 
-  const modal = {
-    open: false,
-    mode: 'edit',     // 'edit' | 'create'
-    lead: null,       // original lead (edit mode)
-    draft: null,      // working copy
-    move: null,       // { from, to } when opened from drag & drop
-    selects: {},
-    returnFocus: null,
-  };
-
-  function autoStatus(stageId) {
-    const list = statusesForStage(stageId);
-    return list.length === 1 ? list[0] : '';
-  }
-
-  function openModal(leadId, opts) {
-    closeAllPopovers();
-    toggleFiltersPanel(false);
-    const lead = leadId ? findLead(leadId) : null;
-    modal.mode = lead ? 'edit' : 'create';
-    modal.lead = lead;
-    modal.move = null;
-    modal.returnFocus = document.activeElement;
-
-    if (lead) {
-      modal.draft = {
-        stage: lead.stage, status: lead.status, subStatus: lead.subStatus,
-        details: Object.assign({}, lead.details),
-      };
-      if (opts.targetStage && opts.targetStage !== lead.stage) {
-        modal.move = { from: lead.stage, to: opts.targetStage };
-        modal.draft.stage = opts.targetStage;
-        modal.draft.status = autoStatus(opts.targetStage);
-        modal.draft.subStatus = '';
-      }
-    } else {
-      const stage = opts.stage || 'fresh';
-      modal.draft = {
-        stage, status: autoStatus(stage), subStatus: '', details: {},
-        name: '', phone: '', project: '', category: 'Residential', agent: CURRENT_USER,
-      };
-    }
-
-    buildModal();
+  function showModal(focusSel) {
     backdrop.hidden = false;
     document.body.style.overflow = 'hidden';
     requestAnimationFrame(() => backdrop.classList.add('is-open'));
     modal.open = true;
-
-    // Focus the first thing the user needs to decide
-    setTimeout(() => {
-      if (modal.mode === 'create') $('#mName').focus();
-      else if (!modal.draft.status) modal.selects.status.button.focus();
-      else if (STATUS_CONFIG[modal.draft.status].subStatuses.length && !modal.draft.subStatus) modal.selects.sub.button.focus();
-      else modal.selects.stage.button.focus();
-    }, 60);
+    setTimeout(() => { const el = typeof focusSel === 'function' ? focusSel() : $(focusSel, modalEl); if (el) el.focus(); }, 60);
   }
 
   function closeModal() {
@@ -1202,177 +1210,348 @@
   });
 
   function trapFocus(e) {
-    const f = $$('button:not(:disabled), input, textarea, [tabindex]:not([tabindex="-1"])', modalEl).filter((el) => el.offsetParent !== null);
+    const f = $$('button:not(:disabled), input:not(:disabled), textarea, [tabindex]:not([tabindex="-1"])', modalEl).filter((el) => el.offsetParent !== null);
     if (!f.length) return;
     const first = f[0], last = f[f.length - 1];
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 
-  /* ---------- Modal skeleton ---------- */
+  function pathHTML(stageId, extra) {
+    const stage = stageById(stageId);
+    return `<div class="modal-path"><span class="dot" style="--c:#1d82f5"></span>Sales Pipeline${icon('arrowRight')}<span class="dot" style="--c:${stage.color}"></span>${esc(stage.name)}${extra || ''}</div>`;
+  }
 
-  function buildModal() {
-    const isCreate = modal.mode === 'create';
-    const lead = modal.lead;
-    const title = isCreate ? 'Add Lead' : 'Update Lead';
-    const subtitle = isCreate
-      ? 'Create a lead and place it in the pipeline.'
-      : `#${lead.id} · Set where this lead is in the pipeline and why.`;
+  function footHint(text) {
+    const el = $('#mHint', modalEl);
+    if (!el) return;
+    el.innerHTML = text ? `${icon('info')}${esc(text)}` : '';
+  }
 
+  function moneyInput(id, value) {
+    return `<div class="input-group"><span class="input-addon">EGP</span><input class="input" id="${id}" inputmode="numeric" autocomplete="off" placeholder="0" value="${value === '' || value == null ? '' : Number(value).toLocaleString('en-US')}"></div>`;
+  }
+  function bindMoney(input, onValue) {
+    input.addEventListener('input', () => {
+      const digits = input.value.replace(/[^\d]/g, '');
+      const pos = input.value.length - input.selectionStart;
+      input.value = digits ? Number(digits).toLocaleString('en-US') : '';
+      const np = Math.max(0, input.value.length - pos);
+      input.setSelectionRange(np, np);
+      onValue(digits ? Number(digits) : '');
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+     12a. INTAKE MODAL: Add Lead / update a Fresh lead
+     --------------------------------------------------------------------- */
+
+  function openIntakeModal(leadId, hint) {
+    closeAllPopovers();
+    toggleFiltersPanel(false);
+    const lead = leadId ? findLead(leadId) : null;
+    Object.assign(modal, { kind: 'intake', mode: lead ? 'edit' : 'create', lead, selects: {}, returnFocus: document.activeElement });
+    modal.draft = lead
+      ? {
+          name: lead.name, phone: formatPhone(lead.phone), pipeline: lead.pipeline, budget: lead.budget,
+          createdDate: localISODate(lead.createdAt), project: lead.project, agent: lead.agent, unit: lead.unit,
+          manager: lead.manager, createdBy: lead.createdBy, channel: lead.channel || 'direct', platform: lead.platform, notes: lead.notes,
+        }
+      : {
+          name: '', phone: '', pipeline: 'sales', budget: '', createdDate: localISODate(new Date()),
+          project: '', agent: '', unit: '', manager: '', createdBy: CURRENT_USER, channel: 'direct', platform: '', notes: '',
+        };
+    buildIntakeModal();
+    showModal(hint ? '#fAgent' : '#fName');
+    if (hint) footHint(hint);
+  }
+
+  function buildIntakeModal() {
+    const d = modal.draft;
+    const edit = modal.mode === 'edit';
     modalEl.innerHTML = `
       <header class="modal-head">
         <div>
-          <h2 id="modalTitle">${title}</h2>
-          <p>${esc(subtitle)}</p>
+          <h2 id="modalTitle">${edit ? 'Update Lead' : 'Add Lead'}</h2>
+          <div class="modal-path"><span class="dot" style="--c:#1d82f5"></span>Sales Pipeline${icon('arrowRight')}${statusBadge('fresh_lead')}<span class="muted">${edit ? '· #' + esc(modal.lead.id) + ' ' : ''}· Fresh</span></div>
         </div>
         <button type="button" class="icon-btn modal-close" id="modalClose" aria-label="Close">${icon('x')}</button>
       </header>
-      <nav class="stepper" id="mStepper" aria-label="Pipeline stage"></nav>
-      <div class="modal-body">
-        <aside class="lead-panel" id="mLeadPanel"></aside>
-        <section class="workflow">
-          <div id="mMoveBanner"></div>
-          <div>
-            <div class="wf-section-head">
-              <h3><span class="wf-step-num">1</span>Pipeline position</h3>
-              <span class="field-hint">Stage → Status → Sub-status</span>
+      <div class="modal-body modal-body--single">
+        <section class="crm-card">
+          <div class="crm-card-head"><h3>Lead Details</h3></div>
+          <div class="crm-card-body">
+            <div class="intake-grid">
+              <div class="form-field"><label class="form-label" for="fName">Name <span class="req">*</span></label><input class="input" id="fName" autocomplete="off" placeholder="e.g. Ahmed Mohamed" value="${esc(d.name)}"></div>
+              <div class="form-field"><label class="form-label" for="fPhone">Number <span class="req">*</span></label><input class="input" id="fPhone" inputmode="tel" autocomplete="off" placeholder="01X XXXX XXXX" value="${esc(d.phone)}"></div>
+              <div class="form-field"><label class="form-label" id="lblFPipelineM">Sales Pipeline <span class="req">*</span></label><div id="fPipelineSlot"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFStatusM">Status</label><div id="fStatusSlot"></div></div>
+              <div class="form-field"><label class="form-label" for="fBudget">Budget</label>${moneyInput('fBudget', d.budget)}</div>
+              <div class="form-field"><label class="form-label" for="fDate">Lead Creation Date <span class="req">*</span></label><input class="input" type="date" id="fDate" value="${esc(d.createdDate)}"></div>
+              <div class="form-field"><label class="form-label" id="lblFProjectM">Project</label><div id="fProjectSlot"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFAgentM">Sales Name</label><div id="fAgentSlot"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFUnitM">Unit</label><div id="fUnitSlot"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFManagerM">Manager</label><div id="fManagerSlot"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFCreatedByM">Created By</label><div id="fCreatedBySlot"></div></div>
+              <div class="form-field"><span class="form-label" id="lblFChannelM">Channel</span>
+                <div class="segmented" role="radiogroup" aria-labelledby="lblFChannelM" id="fChannel">
+                  ${CHANNELS.map((c) => `<button type="button" class="seg-btn" role="radio" data-channel="${c.id}" aria-checked="${d.channel === c.id}" tabindex="${d.channel === c.id ? 0 : -1}">${esc(c.label)}</button>`).join('')}
+                </div>
+              </div>
+              <div class="form-field intake-platform"><label class="form-label" id="lblFPlatformM">Platform</label><div id="fPlatformSlot"></div></div>
+              <div class="form-field intake-notes"><label class="form-label" for="fNotes">Feedback / Notes</label><textarea class="textarea" id="fNotes" rows="3" placeholder="Feedback from the first contact, preferences, best time to call…">${esc(d.notes)}</textarea></div>
             </div>
-            <div class="wf-grid-3">
-              <div class="form-field"><label class="form-label" id="lblMStage">Stage <span class="req">*</span></label><div id="mStageSlot"></div></div>
-              <div class="form-field"><label class="form-label" id="lblMStatus">Status <span class="req">*</span></label><div id="mStatusSlot"></div></div>
-              <div class="form-field"><label class="form-label" id="lblMSub">Sub-status <span class="req" id="mSubReq">*</span></label><div id="mSubSlot"></div></div>
-            </div>
-          </div>
-          <div>
-            <div class="wf-section-head">
-              <h3><span class="wf-step-num">2</span>Related details</h3>
-              <div class="wf-crumb" id="mCrumb"></div>
-            </div>
-            <div id="mDetails"></div>
           </div>
         </section>
       </div>
       <footer class="modal-foot">
-        <div class="save-summary" id="mSummary"></div>
         <div class="foot-actions">
-          <button type="button" class="btn btn-secondary" id="mCancel">Cancel</button>
-          <button type="button" class="btn btn-primary" id="mSave">${icon('check')}${isCreate ? 'Add Lead' : 'Save Changes'}</button>
+          <button type="button" class="btn btn-primary" id="mSave">${icon('check')}Save</button>
+          <button type="button" class="btn-cancel" id="mCancel">Cancel</button>
+          <span class="foot-hint" id="mHint"></span>
+        </div>
+        ${edit ? `<button type="button" class="btn btn-secondary" id="mToCold">Move to Cold${icon('arrowRight')}</button>` : ''}
+      </footer>`;
+
+    $('#modalClose', modalEl).addEventListener('click', closeModal);
+    $('#mCancel', modalEl).addEventListener('click', closeModal);
+    $('#mSave', modalEl).addEventListener('click', () => saveIntake(false));
+    if (edit) $('#mToCold', modalEl).addEventListener('click', () => saveIntake(true));
+
+    $('#fName', modalEl).addEventListener('input', (e) => { d.name = e.target.value; footHint(''); });
+    $('#fPhone', modalEl).addEventListener('input', (e) => { d.phone = e.target.value; footHint(''); });
+    $('#fDate', modalEl).addEventListener('input', (e) => { d.createdDate = e.target.value; });
+    $('#fNotes', modalEl).addEventListener('input', (e) => { d.notes = e.target.value; });
+    bindMoney($('#fBudget', modalEl), (v) => { d.budget = v; });
+
+    const sel = (slot, cfg) => { const s = createSelect(cfg); $(slot, modalEl).appendChild(s.el); return s; };
+    sel('#fPipelineSlot', { id: 'fPipeline', labelledBy: 'lblFPipelineM', options: PIPELINES, value: d.pipeline, onChange: (v) => { d.pipeline = v; } });
+    sel('#fStatusSlot', { id: 'fStatusM', labelledBy: 'lblFStatusM', options: [{ value: 'fresh_lead', label: 'Fresh Lead', color: toneDot('fresh_lead') }], value: 'fresh_lead', disabled: true });
+    sel('#fProjectSlot', { id: 'fProject', labelledBy: 'lblFProjectM', placeholder: 'Select project', options: allOption('--').concat(PROJECTS.map((p) => ({ value: p, label: p }))), value: d.project, onChange: (v) => { d.project = v; } });
+    sel('#fAgentSlot', { id: 'fAgent', labelledBy: 'lblFAgentM', placeholder: 'Select sales name', options: allOption('--').concat(AGENTS.map((a) => ({ value: a, label: a, hint: a === CURRENT_USER ? 'You' : '' }))), value: d.agent,
+      onChange: (v) => { d.agent = v; if (v && !d.manager) { d.manager = MANAGER_OF[v] || ''; modal.selects.manager.setValue(d.manager); } footHint(''); } });
+    sel('#fUnitSlot', { id: 'fUnit', labelledBy: 'lblFUnitM', placeholder: 'Select unit', options: allOption('--').concat(UNIT_TYPES.map((u) => ({ value: u, label: u }))), value: d.unit, onChange: (v) => { d.unit = v; } });
+    modal.selects.manager = sel('#fManagerSlot', { id: 'fManager', labelledBy: 'lblFManagerM', placeholder: 'Select manager', options: allOption('--').concat(MANAGERS.map((m) => ({ value: m, label: m }))), value: d.manager, onChange: (v) => { d.manager = v; } });
+    sel('#fCreatedBySlot', { id: 'fCreatedBy', labelledBy: 'lblFCreatedByM', options: USERS.map((u) => ({ value: u, label: u, hint: u === CURRENT_USER ? 'You' : '' })), value: d.createdBy, onChange: (v) => { d.createdBy = v; } });
+    modal.selects.platform = sel('#fPlatformSlot', { id: 'fPlatform', labelledBy: 'lblFPlatformM', placeholder: 'Select platform', options: platformOptions(d.channel), value: d.platform, onChange: (v) => { d.platform = v; } });
+
+    // Channel → Platform
+    const seg = $('#fChannel', modalEl);
+    const setChannel = (id, focus) => {
+      if (d.channel !== id) {
+        d.channel = id;
+        if (d.platform && channelOf(d.platform) !== id) d.platform = '';
+        modal.selects.platform.setOptions(platformOptions(id), d.platform);
+        modal.selects.platform.flash();
+      }
+      $$('.seg-btn', seg).forEach((b) => {
+        const on = b.dataset.channel === id;
+        b.setAttribute('aria-checked', String(on));
+        b.tabIndex = on ? 0 : -1;
+        if (on && focus) b.focus();
+      });
+    };
+    seg.addEventListener('click', (e) => { const b = e.target.closest('.seg-btn'); if (b) setChannel(b.dataset.channel); });
+    seg.addEventListener('keydown', (e) => {
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+      e.preventDefault();
+      const i = CHANNELS.findIndex((c) => c.id === d.channel);
+      const n = CHANNELS[(i + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1) + CHANNELS.length) % CHANNELS.length];
+      setChannel(n.id, true);
+    });
+  }
+
+  function intakeError(toCold) {
+    const d = modal.draft;
+    if (!d.name.trim()) return ['Enter the client name.', '#fName'];
+    if (d.phone.replace(/\D/g, '').length < 10) return ['Enter a valid number (at least 10 digits).', '#fPhone'];
+    if (!d.createdDate) return ['Choose the lead creation date.', '#fDate'];
+    if (toCold && !d.agent) return ['Assign a Sales Name before moving this lead to Cold.', '#fAgent'];
+    return null;
+  }
+
+  function saveIntake(toCold) {
+    const err = intakeError(toCold);
+    if (err) {
+      footHint(err[0]);
+      const el = $(err[1], modalEl);
+      if (el) el.focus();
+      return;
+    }
+    const d = modal.draft;
+    const now = new Date();
+    const timePart = (iso) => { const t = new Date(iso); return [t.getHours(), t.getMinutes()]; };
+    const dateFrom = (ymd, base) => {
+      const [y, m, day] = ymd.split('-').map(Number);
+      const [h, min] = timePart(base);
+      return new Date(y, m - 1, day, h, min).toISOString();
+    };
+    const fields = {
+      name: d.name.trim(), phone: d.phone.replace(/\D/g, ''), pipeline: d.pipeline, budget: d.budget,
+      project: d.project, agent: d.agent, unit: d.unit, manager: d.manager, createdBy: d.createdBy,
+      channel: d.channel, platform: d.platform, notes: d.notes.trim(),
+    };
+    let lead;
+    if (modal.mode === 'create') {
+      lead = seedLead(Object.assign({
+        pool: 'fresh', id: `LD-${state.nextId++}`, stage: 'fresh', status: 'fresh_lead', subStatus: '',
+        createdAt: dateFrom(d.createdDate, now.toISOString()), lastActivity: now.toISOString(),
+        details: d.budget ? { budget: d.budget } : {},
+        history: [{ at: now.toISOString(), by: CURRENT_USER, text: 'Lead created' }],
+      }, fields));
+      state.leads.unshift(lead);
+    } else {
+      lead = modal.lead;
+      const createdAt = localISODate(lead.createdAt) === d.createdDate ? lead.createdAt : dateFrom(d.createdDate, lead.createdAt);
+      Object.assign(lead, fields, { createdAt, lastActivity: now.toISOString() });
+      if (d.budget) lead.details.budget = d.budget;
+      lead.history.unshift({ at: now.toISOString(), by: CURRENT_USER, text: 'Lead details updated' });
+    }
+    closeModal();
+    if (toCold) {
+      moveToCold(lead);
+      return;
+    }
+    if (state.section !== 'fresh') setSection('fresh'); else render();
+    toast(modal.mode === 'create' ? 'Lead added' : 'Lead updated',
+      modal.mode === 'create' ? `${lead.name} was added to Fresh.` : `${lead.name}'s details were saved.`);
+    highlightLead(lead);
+  }
+
+  /* ---------------------------------------------------------------------
+     12b. WORKFLOW MODAL: Cold lead update
+     --------------------------------------------------------------------- */
+
+  function autoStatus(stageId) {
+    const list = statusesForStage(stageId);
+    return list.length === 1 ? list[0] : '';
+  }
+
+  function openLeadModal(leadId, opts) {
+    closeAllPopovers();
+    toggleFiltersPanel(false);
+    const lead = findLead(leadId);
+    Object.assign(modal, { kind: 'workflow', mode: 'edit', lead, selects: {}, returnFocus: document.activeElement });
+    modal.draft = { stage: lead.stage, status: lead.status, subStatus: lead.subStatus, details: Object.assign({}, lead.details) };
+    if (lead.budget && !modal.draft.details.budget) modal.draft.details.budget = lead.budget;
+    if (opts.targetStage && opts.targetStage !== lead.stage) {
+      Object.assign(modal.draft, { stage: opts.targetStage, status: autoStatus(opts.targetStage), subStatus: '' });
+    }
+    buildWorkflowModal();
+    showModal(() => {
+      const d = modal.draft;
+      if (!d.status) return modal.selects.status.button;
+      if (STATUS_CONFIG[d.status].subStatuses.length && !d.subStatus) return modal.selects.sub.button;
+      return modal.selects.stage.button;
+    });
+  }
+
+  function infoRow(label, value) {
+    return `<div class="info-row"><dt>${esc(label)}</dt><dd>${value}</dd></div>`;
+  }
+
+  function buildWorkflowModal() {
+    const l = modal.lead;
+    const none = '<span class="lt-muted">--</span>';
+    modalEl.innerHTML = `
+      <header class="modal-head">
+        <div>
+          <h2 id="modalTitle">Update Lead</h2>
+          <div id="mPath"></div>
+        </div>
+        <button type="button" class="icon-btn modal-close" id="modalClose" aria-label="Close">${icon('x')}</button>
+      </header>
+      <div class="modal-body">
+        <aside>
+          <section class="crm-card">
+            <div class="crm-card-head"><h3>Lead Info</h3></div>
+            <div class="crm-card-body">
+              <div class="info-identity">
+                <span class="avatar avatar-lg" style="--av:#13296b">${esc(initials(l.name))}</span>
+                <div><div class="info-name">${esc(l.name)}</div><div class="info-sub">#${esc(l.id)}</div></div>
+              </div>
+              <dl class="info-list">
+                ${infoRow('Number', `<span class="lt-num">${esc(formatPhone(l.phone))}</span><button type="button" class="icon-btn copy-btn" id="mCopyPhone" title="Copy number" aria-label="Copy number">${icon('copy')}</button>`)}
+                ${infoRow('Project', l.project ? esc(l.project) : none)}
+                ${infoRow('Sales Name', l.agent ? `${avatar(l.agent)}${esc(l.agent)}` : none)}
+                ${infoRow('Manager', l.manager ? esc(l.manager) : none)}
+                ${infoRow('Channel', l.channel ? esc(channelById(l.channel).label) : none)}
+                ${infoRow('Platform', l.platform ? esc(l.platform) : none)}
+                ${infoRow('Budget', l.budget ? esc(formatMoney(l.budget)) : none)}
+                ${infoRow('Unit', l.unit ? esc(l.unit) : none)}
+                ${infoRow('Created', esc(formatDate(l.createdAt)))}
+                ${infoRow('Last activity', esc(relativeTime(l.lastActivity)))}
+                ${l.nextFollowUp ? infoRow('Follow-up', esc(relativeTime(l.nextFollowUp))) : ''}
+              </dl>
+              ${l.notes ? `<div class="info-notes"><span>Feedback / Notes</span>${esc(l.notes)}</div>` : ''}
+            </div>
+          </section>
+          <section class="crm-card">
+            <div class="crm-card-head"><h3>History</h3></div>
+            <div class="crm-card-body">
+              <ol class="history">${l.history.slice(0, 3).map((h) => `<li>${esc(h.text)}<time>${esc(relativeTime(h.at))} · ${esc(h.by)}</time></li>`).join('')}</ol>
+            </div>
+          </section>
+        </aside>
+        <div>
+          <section class="crm-card">
+            <div class="crm-card-head"><h3>Sales Status</h3><span id="mMoveNote"></span></div>
+            <div class="crm-card-body">
+              <div class="wf-grid-3">
+                <div class="form-field"><label class="form-label" id="lblMStage">Stage <span class="req">*</span></label><div id="mStageSlot"></div></div>
+                <div class="form-field"><label class="form-label" id="lblMStatus">Status <span class="req">*</span></label><div id="mStatusSlot"></div></div>
+                <div class="form-field"><label class="form-label" id="lblMSub">Sub-status <span class="req" id="mSubReq">*</span></label><div id="mSubSlot"></div></div>
+              </div>
+            </div>
+          </section>
+          <section class="crm-card">
+            <div class="crm-card-head"><h3>Related Details</h3><div class="wf-crumb" id="mCrumb"></div></div>
+            <div class="crm-card-body" id="mDetails"></div>
+          </section>
+        </div>
+      </div>
+      <footer class="modal-foot">
+        <div class="foot-actions">
+          <button type="button" class="btn btn-primary" id="mSave">${icon('check')}Save Changes</button>
+          <button type="button" class="btn-cancel" id="mCancel">Cancel</button>
+          <span class="foot-hint" id="mHint"></span>
         </div>
       </footer>`;
 
     $('#modalClose', modalEl).addEventListener('click', closeModal);
     $('#mCancel', modalEl).addEventListener('click', closeModal);
-    $('#mSave', modalEl).addEventListener('click', saveModal);
-    $('#mStepper', modalEl).addEventListener('click', (e) => {
-      const b = e.target.closest('.step');
-      if (b) setDraftStage(b.dataset.stage);
+    $('#mSave', modalEl).addEventListener('click', saveWorkflow);
+    $('#mCopyPhone', modalEl).addEventListener('click', () => {
+      const done = () => toast('Number copied', formatPhone(l.phone), 'info');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(l.phone).then(done, done);
+      else done();
     });
 
-    // Pipeline position selects
     modal.selects.stage = createSelect({
       id: 'mStage', labelledBy: 'lblMStage',
-      options: STAGES.map((s, i) => ({ value: s.id, label: s.name, color: s.color, hint: `Stage ${i + 1}` })),
-      value: modal.draft.stage,
-      onChange: (v) => setDraftStage(v),
+      options: STAGES.map((s) => ({ value: s.id, label: s.name, color: s.color })),
+      value: modal.draft.stage, onChange: (v) => setDraftStage(v),
     });
     modal.selects.status = createSelect({ id: 'mStatus', labelledBy: 'lblMStatus', placeholder: 'Select status', onChange: (v) => setDraftStatus(v) });
     modal.selects.sub = createSelect({ id: 'mSub', labelledBy: 'lblMSub', placeholder: 'Select sub-status', onChange: (v) => setDraftSub(v) });
     $('#mStageSlot', modalEl).appendChild(modal.selects.stage.el);
     $('#mStatusSlot', modalEl).appendChild(modal.selects.status.el);
     $('#mSubSlot', modalEl).appendChild(modal.selects.sub.el);
-
-    renderLeadPanel();
     renderWorkflow();
   }
-
-  /* ---------- Left panel: lead information ---------- */
-
-  function renderLeadPanel() {
-    const panel = $('#mLeadPanel', modalEl);
-    if (modal.mode === 'create') {
-      const d = modal.draft;
-      panel.innerHTML = `
-        <div class="lp-identity">
-          <span class="avatar avatar-lg" style="--av:#8e99aa">${icon('user')}</span>
-          <div><div class="lp-name">New lead</div><div class="lp-sub">#LD-${state.nextId} · will be assigned on save</div></div>
-        </div>
-        <div class="lp-form">
-          <div class="form-field"><label class="form-label" for="mName">Client name <span class="req">*</span></label><input class="input" id="mName" autocomplete="off" placeholder="e.g. Ahmed Mohamed" value="${esc(d.name)}"></div>
-          <div class="form-field"><label class="form-label" for="mPhone">Phone <span class="req">*</span></label><input class="input" id="mPhone" inputmode="tel" autocomplete="off" placeholder="01X XXXX XXXX" value="${esc(d.phone)}"></div>
-          <div class="form-field"><label class="form-label" id="lblMProject">Project</label><div id="mProjectSlot"></div></div>
-          <div class="form-field"><label class="form-label" id="lblMCategory">Category</label><div id="mCategorySlot"></div></div>
-          <div class="form-field"><label class="form-label" id="lblMAgent">Assigned to</label><div id="mAgentSlot"></div></div>
-        </div>`;
-      $('#mName', panel).addEventListener('input', (e) => { d.name = e.target.value; renderSummary(); });
-      $('#mPhone', panel).addEventListener('input', (e) => { d.phone = e.target.value; renderSummary(); });
-      const proj = createSelect({ id: 'mProject', labelledBy: 'lblMProject', placeholder: 'Select project', options: PROJECTS.map((p) => ({ value: p, label: p })), value: d.project, onChange: (v) => { d.project = v; } });
-      const cat = createSelect({ id: 'mCategory', labelledBy: 'lblMCategory', options: CATEGORIES.map((c) => ({ value: c, label: c })), value: d.category, onChange: (v) => { d.category = v; } });
-      const ag = createSelect({ id: 'mAgent', labelledBy: 'lblMAgent', options: AGENTS.map((a) => ({ value: a, label: a, hint: a === CURRENT_USER ? 'You' : '' })), value: d.agent, onChange: (v) => { d.agent = v; } });
-      $('#mProjectSlot', panel).appendChild(proj.el);
-      $('#mCategorySlot', panel).appendChild(cat.el);
-      $('#mAgentSlot', panel).appendChild(ag.el);
-      return;
-    }
-
-    const l = modal.lead;
-    const stage = stageById(l.stage);
-    const followUp = l.nextFollowUp
-      ? `<div class="lp-row"><dt>Next follow-up</dt><dd>${esc(relativeTime(l.nextFollowUp))}</dd></div>` : '';
-    panel.innerHTML = `
-      <div class="lp-identity">
-        ${avatar(l.name, 'lg').replace(/--av:[^"]+/, '--av:#13296b')}
-        <div><div class="lp-name">${esc(l.name)}</div><div class="lp-sub">#${esc(l.id)} · ${esc(l.category)}</div></div>
-      </div>
-      <dl class="lp-list">
-        <div class="lp-row"><dt>Phone</dt><dd><span style="font-variant-numeric:tabular-nums">${esc(formatPhone(l.phone))}</span>
-          <button type="button" class="icon-btn copy-btn" id="mCopyPhone" title="Copy phone number" aria-label="Copy phone number">${icon('copy')}</button></dd></div>
-        <div class="lp-row"><dt>Project</dt><dd>${l.project ? esc(l.project) : '<span class="lt-muted">Not set</span>'}</dd></div>
-        <div class="lp-row"><dt>Assigned to</dt><dd>${avatar(l.agent)}${esc(l.agent)}</dd></div>
-        <div class="lp-row"><dt>Created</dt><dd>${esc(formatDate(l.createdAt))}</dd></div>
-        <div class="lp-row"><dt>Last activity</dt><dd>${esc(relativeTime(l.lastActivity))}</dd></div>
-        ${followUp}
-      </dl>
-      <div>
-        <div class="lp-section-title">Current position</div>
-        <div class="lp-current">
-          <div class="lp-current-stage"><span class="dot" style="--c:${stage.color}"></span>${esc(stage.name)}</div>
-          <div class="lc-state">${stateBadges(l)}</div>
-        </div>
-      </div>
-      <div class="lp-activity">
-        <div class="lp-section-title">Recent activity</div>
-        <ol>${l.history.slice(0, 4).map((h) => `<li>${esc(h.text)}<time>${esc(relativeTime(h.at))} · ${esc(h.by)}</time></li>`).join('')}</ol>
-      </div>`;
-
-    $('#mCopyPhone', panel).addEventListener('click', () => {
-      const text = formatPhone(l.phone);
-      const done = () => toast('Phone number copied', text, 'info');
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(l.phone).then(done, done);
-      else done();
-    });
-  }
-
-  /* ---------- Right panel: Stage → Status → Sub-status → Related data ---------- */
 
   function setDraftStage(stageId) {
     const d = modal.draft;
     if (d.stage === stageId) return;
-    d.stage = stageId;
-    d.status = autoStatus(stageId);
-    d.subStatus = '';
-    modal.selects.stage.setValue(stageId);
+    Object.assign(d, { stage: stageId, status: autoStatus(stageId), subStatus: '' });
     renderWorkflow();
     modal.selects.status.flash();
   }
-
   function setDraftStatus(statusId) {
-    const d = modal.draft;
-    d.status = statusId;
-    d.subStatus = '';
+    Object.assign(modal.draft, { status: statusId, subStatus: '' });
     renderWorkflow();
     if (STATUS_CONFIG[statusId].subStatuses.length) modal.selects.sub.flash();
   }
-
   function setDraftSub(subId) {
     modal.draft.subStatus = subId;
     renderWorkflow();
@@ -1380,91 +1559,58 @@
 
   function renderWorkflow() {
     const d = modal.draft;
+    const l = modal.lead;
     const st = d.status ? STATUS_CONFIG[d.status] : null;
+    const moving = d.stage !== l.stage;
 
-    // Stepper
-    const cur = stageIndex(d.stage);
-    const origin = modal.lead ? modal.lead.stage : null;
-    $('#mStepper', modalEl).innerHTML = STAGES.map((s, i) => {
-      const cls = i < cur ? 'is-done' : i === cur ? 'is-current' : '';
-      const showOrigin = origin && origin === s.id && origin !== d.stage;
-      return (i ? '<span class="step-line" aria-hidden="true"></span>' : '') +
-        `<button type="button" class="step ${cls}" data-stage="${s.id}" style="--stage:${s.color}" aria-current="${i === cur ? 'step' : 'false'}" title="Move to ${esc(s.name)}">
-          <span class="step-dot">${i < cur ? icon('check') : i + 1}</span>${esc(s.name)}${showOrigin ? '<span class="step-origin">Was here</span>' : ''}
-        </button>`;
-    }).join('');
+    $('#mPath', modalEl).innerHTML = pathHTML(d.stage, `<span class="muted">· #${esc(l.id)} · Cold</span>`);
+    $('#mMoveNote', modalEl).innerHTML = moving
+      ? `<span class="move-note">${icon('arrowRight')}Moving from ${esc(stageById(l.stage).name)}</span>` : '';
 
-    // Move banner (drag & drop, or stage changed in the modal)
-    const banner = $('#mMoveBanner', modalEl);
-    if (modal.lead && d.stage !== modal.lead.stage) {
-      const from = stageById(modal.lead.stage).name, to = stageById(d.stage).name;
-      banner.innerHTML = `<div class="move-banner">${icon('info')}<div>Moving <strong>${esc(modal.lead.name)}</strong> from <strong>${esc(from)}</strong> to <strong>${esc(to)}</strong>. Choose the new status${statusesForStage(d.stage).some((s) => STATUS_CONFIG[s].subStatuses.length) ? ' and sub-status' : ''}, then save to complete the move.</div></div>`;
-    } else {
-      banner.innerHTML = '';
-    }
-
-    // Status options: only statuses of the selected stage
+    // Status options: only the statuses of the selected stage
     modal.selects.status.setOptions(
       statusesForStage(d.stage).map((sid) => ({ value: sid, label: STATUS_CONFIG[sid].label, color: toneDot(sid) })),
       d.status
     );
 
-    // Sub-status options: only sub-statuses of the selected status
+    // Sub-status options: only the sub-statuses of the selected status
     const subs = st ? st.subStatuses : [];
-    $('#mSubReq', modalEl).hidden = !(st && subs.length);
     const subSelect = modal.selects.sub;
+    $('#mSubReq', modalEl).hidden = !(st && subs.length);
     if (!st || !subs.length) {
       subSelect.setOptions([], '');
       subSelect.setDisabled(true);
-      subSelect.setPlaceholder(st ? `No sub-status for ${st.label}` : 'Select a status first');
+      subSelect.setPlaceholder(st ? 'None' : 'Select a status first');
     } else {
       subSelect.setPlaceholder('Select sub-status');
       subSelect.setOptions(subs.map((s) => ({ value: s.id, label: s.label })), d.subStatus);
       subSelect.setDisabled(false);
     }
 
-    // Crumb next to "Related details"
     const sub = subStatusOf(d.status, d.subStatus);
     $('#mCrumb', modalEl).innerHTML = st
-      ? `<span class="badge-status tone-${st.tone}"><span class="dot"></span>${esc(st.label)}</span>` +
-        (sub ? icon('chevronRight', 'lc-sep') + `<span class="badge-sub">${esc(sub.label)}</span>` : '')
+      ? statusBadge(d.status) + (sub ? icon('chevronRight', 'lc-sep') + `<span class="badge-sub">${esc(sub.label)}</span>` : '')
       : '';
 
     renderDetails();
-    renderSummary();
-  }
-
-  function detailsEmpty(title, text, iconName = 'layers') {
-    return `<div class="details-empty">${icon(iconName)}<div><strong>${esc(title)}</strong>${esc(text)}</div></div>`;
+    footHint(workflowError() || '');
+    $('#mSave', modalEl).disabled = !!workflowError();
   }
 
   function renderDetails() {
     const d = modal.draft;
     const box = $('#mDetails', modalEl);
     const st = d.status ? STATUS_CONFIG[d.status] : null;
-
-    if (!st) {
-      box.innerHTML = detailsEmpty('Choose a status', `Pick the status that describes this lead in ${stageById(d.stage).name}. The matching sub-statuses and details will appear here.`);
-      return;
-    }
-    if (!st.subStatuses.length) {
-      box.innerHTML = detailsEmpty(`No extra details for ${st.label}`, st.emptyHint || 'Save to apply this status.', 'check');
-      return;
-    }
+    if (!st) { box.innerHTML = '<div class="details-empty">Select a status to see the related details.</div>'; return; }
+    if (!st.subStatuses.length) { box.innerHTML = `<div class="details-empty">${esc(st.label)} has no sub-status and no extra details.</div>`; return; }
     const sub = subStatusOf(d.status, d.subStatus);
-    if (!sub) {
-      box.innerHTML = detailsEmpty('Choose a sub-status',
-        `${st.label} needs a reason: ${st.subStatuses.map((s) => s.label).join(', ')}. The related details will appear here.`);
-      return;
-    }
+    if (!sub) { box.innerHTML = '<div class="details-empty">Select a sub-status to see the related details.</div>'; return; }
 
-    // Prefill the project field from the lead's project when empty
-    const leadProject = modal.mode === 'edit' ? modal.lead.project : d.project;
     ['project', 'projectName'].forEach((k) => {
-      if (st.fields.includes(k) && !d.details[k] && leadProject) d.details[k] = leadProject;
+      if (st.fields.includes(k) && !d.details[k] && modal.lead.project) d.details[k] = modal.lead.project;
     });
 
-    box.innerHTML = `<div class="details-card"><div class="details-grid" id="mFieldGrid"></div></div>`;
+    box.innerHTML = '<div class="details-grid" id="mFieldGrid"></div>';
     const grid = $('#mFieldGrid', box);
     st.fields.forEach((fieldId, i) => {
       const def = FIELD_DEFS[fieldId];
@@ -1478,179 +1624,93 @@
       const value = d.details[fieldId] == null ? '' : d.details[fieldId];
 
       if (def.type === 'select') {
-        const sel = createSelect({
+        const s = createSelect({
           id: inputId, labelledBy: labelId, placeholder: def.placeholder || 'Select',
-          options: [{ value: '', label: '—' }].concat(def.options.map((o) => ({ value: o, label: o }))),
-          value, onChange: (v) => { d.details[fieldId] = v; renderSummary(); },
+          options: allOption('--').concat(def.options.map((o) => ({ value: o, label: o }))),
+          value, onChange: (v) => { d.details[fieldId] = v; },
         });
-        wrap.appendChild(sel.el);
+        wrap.appendChild(s.el);
       } else if (def.type === 'money') {
-        wrap.insertAdjacentHTML('beforeend',
-          `<div class="input-group"><span class="input-addon">EGP</span><input class="input" id="${inputId}" inputmode="numeric" autocomplete="off" placeholder="0" value="${value === '' ? '' : Number(value).toLocaleString('en-US')}"></div>`);
-        const input = $('input', wrap);
-        input.addEventListener('input', () => {
-          const digits = input.value.replace(/[^\d]/g, '');
-          d.details[fieldId] = digits ? Number(digits) : '';
-          const pos = input.value.length - input.selectionStart;
-          input.value = digits ? Number(digits).toLocaleString('en-US') : '';
-          const np = Math.max(0, input.value.length - pos);
-          input.setSelectionRange(np, np);
-          renderSummary();
-        });
+        wrap.insertAdjacentHTML('beforeend', moneyInput(inputId, value));
+        bindMoney($('input', wrap), (v) => { d.details[fieldId] = v; });
       } else if (def.type === 'textarea') {
         wrap.insertAdjacentHTML('beforeend', `<textarea class="textarea" id="${inputId}" rows="3" placeholder="${esc(def.placeholder || '')}">${esc(value)}</textarea>`);
-        $('textarea', wrap).addEventListener('input', (e) => { d.details[fieldId] = e.target.value; renderSummary(); });
+        $('textarea', wrap).addEventListener('input', (e) => { d.details[fieldId] = e.target.value; });
       } else {
         const type = def.type === 'date' ? 'date' : 'text';
         wrap.insertAdjacentHTML('beforeend', `<input class="input" type="${type}" id="${inputId}" autocomplete="off" placeholder="${esc(def.placeholder || '')}" value="${esc(value)}">`);
-        $('input', wrap).addEventListener('input', (e) => { d.details[fieldId] = e.target.value; renderSummary(); });
+        $('input', wrap).addEventListener('input', (e) => { d.details[fieldId] = e.target.value; });
       }
       grid.appendChild(wrap);
     });
   }
 
-  /* ---------- Validation + "what happens on save" summary ---------- */
-
-  function validation() {
+  function workflowError() {
     const d = modal.draft;
-    if (modal.mode === 'create') {
-      if (!d.name.trim()) return 'Enter the client name to continue.';
-      if (d.phone.replace(/\D/g, '').length < 10) return 'Enter a valid phone number to continue.';
-    }
-    if (!d.status) return 'Select a status to continue.';
-    if (STATUS_CONFIG[d.status].subStatuses.length && !d.subStatus) return 'Select a sub-status to continue.';
+    if (!d.status) return 'Select a status.';
+    if (STATUS_CONFIG[d.status].subStatuses.length && !d.subStatus) return 'Select a sub-status.';
     return '';
   }
 
-  function detailsChanged() {
-    if (!modal.lead) return false;
-    const a = modal.lead.details, b = modal.draft.details;
-    const st = modal.draft.status && STATUS_CONFIG[modal.draft.status];
-    if (!st) return false;
-    return st.fields.some((k) => String(a[k] == null ? '' : a[k]) !== String(b[k] == null ? '' : b[k]));
-  }
-
-  function renderSummary() {
-    const el = $('#mSummary', modalEl);
-    if (!el) return;
+  function saveWorkflow() {
+    if (workflowError()) return;
     const d = modal.draft;
-    const error = validation();
-    $('#mSave', modalEl).disabled = !!error;
-    el.className = 'save-summary';
-    if (error) {
-      el.classList.add('is-invalid');
-      el.innerHTML = `${icon('info')}<span>${esc(error)}</span>`;
-      return;
-    }
-    const st = STATUS_CONFIG[d.status];
-    const sub = subStatusOf(d.status, d.subStatus);
-    const stateText = `<b>${esc(st.label)}</b>${sub ? ' › <b>' + esc(sub.label) + '</b>' : ''}`;
-    const stageName = esc(stageById(d.stage).name);
-
-    if (modal.mode === 'create') {
-      el.classList.add('is-changed');
-      el.innerHTML = `${icon('arrowRight')}<span>On save: new lead added to <b>${stageName}</b> as ${stateText}</span>`;
-      return;
-    }
-    const l = modal.lead;
-    const stageChanged = d.stage !== l.stage;
-    const stateChanged = d.status !== l.status || d.subStatus !== l.subStatus;
-    const dataChanged = detailsChanged();
-    if (!stageChanged && !stateChanged && !dataChanged) {
-      el.innerHTML = `${icon('check')}<span>No changes yet. The lead stays in <b>${stageName}</b> as ${stateText}.</span>`;
-      return;
-    }
-    const parts = [];
-    if (stageChanged) parts.push(`card moves to <b>${stageName}</b>`);
-    if (stateChanged || stageChanged) parts.push(`status becomes ${stateText}`);
-    if (dataChanged) parts.push('details are updated');
-    el.classList.add('is-changed');
-    el.innerHTML = `${icon('arrowRight')}<span>On save: ${parts.join(', ')}.</span>`;
-  }
-
-  /* ---------- Save ---------- */
-
-  function saveModal() {
-    if (validation()) return;
-    const d = modal.draft;
+    const lead = modal.lead;
     const st = STATUS_CONFIG[d.status];
     const sub = subStatusOf(d.status, d.subStatus);
     const now = new Date().toISOString();
+    const stageChanged = lead.stage !== d.stage;
+    const stateChanged = lead.status !== d.status || lead.subStatus !== d.subStatus;
 
-    // Keep only values for the fields of the chosen status (others are preserved untouched)
-    const cleanDetails = {};
-    st.fields.forEach((k) => { if (d.details[k] !== undefined) cleanDetails[k] = d.details[k]; });
+    st.fields.forEach((k) => { if (d.details[k] !== undefined) lead.details[k] = d.details[k]; });
+    if (st.fields.includes('budget') && d.details.budget) lead.budget = d.details.budget;
+    const proj = (st.fields.includes('project') && d.details.project) || (st.fields.includes('projectName') && d.details.projectName);
+    if (proj) lead.project = proj;
+    Object.assign(lead, { stage: d.stage, status: d.status, subStatus: d.subStatus, lastActivity: now });
 
-    let lead;
-    let message;
-    if (modal.mode === 'create') {
-      lead = seedLead({
-        id: `LD-${state.nextId++}`,
-        name: d.name.trim(), phone: d.phone.replace(/\D/g, ''),
-        project: d.project, category: d.category, agent: d.agent,
-        stage: d.stage, status: d.status, subStatus: d.subStatus,
-        details: cleanDetails, lastActivity: now, createdAt: now,
-      });
-      lead.history = [{ at: now, by: CURRENT_USER, text: `Lead created in ${stageById(d.stage).name}` }];
-      state.leads.unshift(lead);
-      message = { title: 'Lead added', text: `${lead.name} was added to ${stageById(lead.stage).name}.` };
+    const stateLabel = `${st.label}${sub ? ' › ' + sub.label : ''}`;
+    let historyText, message;
+    if (stageChanged) {
+      historyText = `Moved to ${stageById(d.stage).name} · ${stateLabel}`;
+      message = ['Lead moved', `${lead.name} moved to ${stageById(d.stage).name} as ${stateLabel}.`];
+    } else if (stateChanged) {
+      historyText = `Status changed to ${stateLabel}`;
+      message = ['Lead updated', `${lead.name} is now ${stateLabel}.`];
     } else {
-      lead = modal.lead;
-      const prevStage = lead.stage;
-      const stageChanged = prevStage !== d.stage;
-      const stateChanged = lead.status !== d.status || lead.subStatus !== d.subStatus;
-      Object.assign(lead.details, cleanDetails);
-      if (cleanDetails.project) lead.project = cleanDetails.project;
-      else if (cleanDetails.projectName) lead.project = cleanDetails.projectName;
-      lead.stage = d.stage;
-      lead.status = d.status;
-      lead.subStatus = d.subStatus;
-      lead.lastActivity = now;
-      const stateLabel = `${st.label}${sub ? ' › ' + sub.label : ''}`;
-      let historyText;
-      if (stageChanged) {
-        historyText = `Moved to ${stageById(d.stage).name} · ${stateLabel}`;
-        message = { title: 'Lead moved', text: `${lead.name} moved to ${stageById(d.stage).name} as ${stateLabel}.` };
-      } else if (stateChanged) {
-        historyText = `Status changed to ${stateLabel}`;
-        message = { title: 'Lead updated', text: `${lead.name} is now ${stateLabel}.` };
-      } else {
-        historyText = `Details updated (${stateLabel})`;
-        message = { title: 'Lead updated', text: `${lead.name}'s details were saved.` };
-      }
-      lead.history.unshift({ at: now, by: CURRENT_USER, text: historyText });
+      historyText = `Details updated (${stateLabel})`;
+      message = ['Lead updated', `${lead.name}'s details were saved.`];
     }
+    lead.history.unshift({ at: now, by: CURRENT_USER, text: historyText });
 
     const hidden = !matchesLead(lead);
     closeModal();
     render();
-    if (hidden) message.text += ' It is hidden by the current filters.';
-    toast(message.title, message.text);
+    toast(message[0], message[1] + (hidden ? ' It is hidden by the current filters.' : ''));
     if (!hidden) highlightLead(lead);
   }
 
   function highlightLead(lead) {
-    if (state.collapsed.has(lead.stage)) { state.collapsed.delete(lead.stage); render(); }
-    const sel = state.view === 'kanban' ? `.lead-card[data-id="${lead.id}"]` : `tr[data-id="${lead.id}"]`;
-    const el = (state.view === 'kanban' ? boardEl : listEl).querySelector(sel);
+    if (lead.pool === 'cold' && state.collapsed.has(lead.stage)) { state.collapsed.delete(lead.stage); render(); }
+    const kanban = isCold() && state.coldView === 'kanban';
+    const el = kanban
+      ? boardEl.querySelector(`.lead-card[data-id="${lead.id}"]`)
+      : listEl.querySelector(`tr[data-id="${lead.id}"]`);
     if (!el) return;
-    if (state.view === 'kanban') {
+    if (kanban) {
       const col = el.closest('.column');
       const b = boardEl.getBoundingClientRect(), c = col.getBoundingClientRect();
       if (c.left < b.left || c.right > b.right) boardEl.scrollTo({ left: boardEl.scrollLeft + c.left - b.left - 24, behavior: 'smooth' });
       const body = el.closest('.col-body');
       body.scrollTop = Math.max(0, el.offsetTop - body.offsetTop - 10);
-      el.classList.add('is-updated');
-      setTimeout(() => el.classList.remove('is-updated'), 2300);
     } else {
       el.scrollIntoView({ block: 'nearest' });
-      el.style.background = '#f0f6ff';
-      setTimeout(() => { el.style.transition = 'background 1.2s'; el.style.background = ''; }, 900);
     }
+    el.classList.add('is-updated');
+    setTimeout(() => el.classList.remove('is-updated'), 2300);
   }
 
   /* ======================================================================
-     12. TOASTS
+     13. TOASTS
      ====================================================================== */
 
   function toast(title, text, kind) {
@@ -1664,22 +1724,26 @@
     setTimeout(() => {
       t.classList.add('is-leaving');
       setTimeout(() => t.remove(), 220);
-    }, 3800);
+    }, 3600);
   }
 
   /* ======================================================================
-     13. BOOT
+     14. BOOT
      ====================================================================== */
 
-  // Inject static icons declared in index.html via data-icon
-  $$('[data-icon]').forEach((el) => {
-    el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon));
-  });
+  $$('[data-icon]').forEach((el) => { el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon)); });
 
+  initSidebar();
   initToolbar();
+  const fromHash = (location.hash || '').replace('#', '');
+  if (fromHash === 'cold') state.section = 'cold';
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.replace('#', '');
+    if ((h === 'fresh' || h === 'cold') && h !== state.section) setSection(h);
+  });
   syncFilterControls();
   render();
 
   // Exposed for quick inspection in the browser console during demos
-  window.SalesPipeline = { state, STAGES, STATUS_CONFIG, FIELD_DEFS };
+  window.SalesPipeline = { state, STAGES, STATUS_CONFIG, FIELD_DEFS, CHANNELS };
 })();

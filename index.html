@@ -7,52 +7,79 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app">
-    <!-- Light navigation rail (icons are injected from app.js) -->
-    <nav class="rail" aria-label="Main navigation">
-      <div class="rail-logo" title="Realty CRM">R</div>
-      <a class="rail-item" href="#" title="Dashboard" data-icon="grid"></a>
-      <a class="rail-item" href="#" title="Clients" data-icon="users"></a>
-      <a class="rail-item is-active" href="#" title="Sales" aria-current="page" data-icon="dollar"></a>
-      <a class="rail-item" href="#" title="Projects" data-icon="building"></a>
-      <a class="rail-item" href="#" title="Calendar" data-icon="calendar"></a>
-      <a class="rail-item" href="#" title="Messages" data-icon="message"></a>
-      <a class="rail-item" href="#" title="Reports" data-icon="barChart"></a>
-      <a class="rail-item rail-bottom" href="#" title="Settings" data-icon="sliders"></a>
-    </nav>
+  <div class="app" id="app">
+    <!-- CRM sidebar (icons are injected from app.js via data-icon) -->
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+      <div class="sb-head">
+        <span class="sb-logo">R</span>
+        <span class="sb-brand">Realty CRM</span>
+        <span class="sb-caret" data-icon="chevronDown"></span>
+      </div>
+      <nav class="sb-nav">
+        <a class="sb-item" href="#" data-nav="Dashboard" title="Dashboard"><span class="sb-icon" data-icon="home"></span><span class="sb-label">Dashboard</span></a>
+        <div class="sb-group is-open is-active" id="sbLeadsGroup">
+          <button type="button" class="sb-item" id="sbLeads" aria-expanded="true" title="Leads">
+            <span class="sb-icon" data-icon="users"></span><span class="sb-label">Leads</span><span class="sb-arrow" data-icon="chevronDown"></span>
+          </button>
+          <div class="sb-sub">
+            <a class="sb-subitem" href="#" data-nav="Lead Contact">Lead Contact</a>
+            <a class="sb-subitem is-active" href="#" data-nav="Deals" aria-current="page">Deals</a>
+            <div class="sb-sub2">
+              <a class="sb-subitem2" href="#fresh" data-section="fresh">Fresh<span class="sb-count" id="sbFreshCount"></span></a>
+              <a class="sb-subitem2" href="#cold" data-section="cold">Cold<span class="sb-count" id="sbColdCount"></span></a>
+            </div>
+          </div>
+        </div>
+        <a class="sb-item" href="#" data-nav="Clients" title="Clients"><span class="sb-icon" data-icon="user"></span><span class="sb-label">Clients</span></a>
+        <a class="sb-item" href="#" data-nav="Projects" title="Projects"><span class="sb-icon" data-icon="building"></span><span class="sb-label">Projects</span></a>
+        <a class="sb-item" href="#" data-nav="Finance" title="Finance"><span class="sb-icon" data-icon="dollar"></span><span class="sb-label">Finance</span></a>
+        <a class="sb-item" href="#" data-nav="Tickets" title="Tickets"><span class="sb-icon" data-icon="headphones"></span><span class="sb-label">Tickets</span></a>
+        <a class="sb-item" href="#" data-nav="Events" title="Events"><span class="sb-icon" data-icon="calendar"></span><span class="sb-label">Events</span></a>
+        <a class="sb-item" href="#" data-nav="Messages" title="Messages"><span class="sb-icon" data-icon="message"></span><span class="sb-label">Messages</span></a>
+        <a class="sb-item" href="#" data-nav="Reports" title="Reports"><span class="sb-icon" data-icon="barChart"></span><span class="sb-label">Reports</span></a>
+        <a class="sb-item" href="#" data-nav="Settings" title="Settings"><span class="sb-icon" data-icon="settings"></span><span class="sb-label">Settings</span></a>
+      </nav>
+      <button type="button" class="sb-toggle" id="sbToggle" title="Collapse menu" aria-label="Collapse menu"><span data-icon="chevronLeft"></span></button>
+    </aside>
+    <div class="sb-overlay" id="sbOverlay"></div>
 
     <div class="main">
       <!-- Page header -->
       <header class="topbar">
+        <button type="button" class="top-icon menu-btn" id="menuBtn" title="Menu" aria-label="Open menu" data-icon="menu"></button>
         <div class="topbar-title">
-          <h1>Sales Pipeline</h1>
+          <h1>Deals</h1>
           <nav class="crumbs" aria-label="Breadcrumb">
-            <a href="#">Home</a><span>•</span><a href="#">Sales</a><span>•</span><span aria-current="page">Pipeline</span>
+            <a href="#">Home</a><span>•</span><a href="#">Leads</a><span>•</span><a href="#">Deals</a><span>•</span><span aria-current="page" id="crumbSection">Fresh</span>
           </nav>
         </div>
         <div class="topbar-actions">
-          <button class="top-icon" type="button" id="topSearchBtn" title="Search leads" data-icon="search"></button>
-          <button class="top-icon" type="button" title="Sticky notes" data-icon="fileText"></button>
-          <button class="top-icon" type="button" title="Timer" data-icon="clock"></button>
+          <button class="top-icon" type="button" id="topSearchBtn" title="Search" data-icon="search"></button>
           <button class="top-icon" type="button" id="topAddBtn" title="Add lead" data-icon="plusCircle"></button>
           <button class="top-icon has-badge" type="button" title="Notifications" data-icon="bell"><span class="top-badge">12</span></button>
-          <span class="top-divider" aria-hidden="true"></span>
-          <div class="top-user" title="Ahmed Gad · Sales Manager">
-            <span class="avatar avatar-sm" style="--av:#5b6fd6">AG</span>
-            <span class="top-user-text"><strong>Ahmed Gad</strong><small>Sales Manager</small></span>
-          </div>
+          <button class="top-icon" type="button" title="Log out" data-icon="power"></button>
         </div>
       </header>
 
+      <!-- Fresh / Cold -->
+      <div class="section-tabs" role="tablist" aria-label="Lead views">
+        <button type="button" role="tab" class="sec-tab" id="tabFresh" data-section="fresh" aria-selected="true">
+          Fresh<span class="sec-count" id="tabFreshCount"></span>
+        </button>
+        <button type="button" role="tab" class="sec-tab" id="tabCold" data-section="cold" aria-selected="false">
+          Cold<span class="sec-count" id="tabColdCount"></span>
+        </button>
+        <span class="sec-caption" id="sectionCaption"></span>
+      </div>
+
       <!-- Filter bar -->
-      <div class="filterbar" role="toolbar" aria-label="Pipeline filters">
-        <div class="fb-item"><span class="fb-label" id="lblDuration">Duration</span><div id="durationSelect"></div></div>
+      <div class="filterbar" role="toolbar" aria-label="Filters">
         <div class="fb-item"><span class="fb-label" id="lblPipeline">Pipeline</span><div id="pipelineSelect"></div></div>
-        <div class="fb-item"><span class="fb-label" id="lblCategory">Category</span><div id="categorySelect"></div></div>
         <div class="fb-item"><span class="fb-label" id="lblProject">Project</span><div id="projectSelect"></div></div>
+        <div class="fb-item"><span class="fb-label" id="lblAgent">Agent</span><div id="agentSelect"></div></div>
         <div class="fb-search">
           <span class="fb-search-icon" data-icon="search"></span>
-          <input id="searchInput" type="search" autocomplete="off" placeholder="Search by name, lead ID, phone, project or agent" aria-label="Search leads">
+          <input id="searchInput" type="search" autocomplete="off" placeholder="Start typing to search" aria-label="Search leads">
           <button type="button" class="fb-search-clear" id="searchClear" title="Clear search" data-icon="x" hidden></button>
         </div>
         <div class="fb-filters">
@@ -61,15 +88,14 @@
           </button>
           <div class="filters-panel" id="filtersPanel" role="dialog" aria-label="Filters" hidden>
             <div class="fp-head">
-              <strong>Filter leads</strong>
+              <strong>Filters</strong>
               <button type="button" class="link-btn" id="filtersReset">Reset</button>
             </div>
             <div class="fp-grid">
-              <div class="form-field"><label class="form-label" id="lblFStage">Stage</label><div id="fStage"></div></div>
-              <div class="form-field"><label class="form-label" id="lblFStatus">Status</label><div id="fStatus"></div></div>
-              <div class="form-field"><label class="form-label" id="lblFAgent">Assigned agent</label><div id="fAgent"></div></div>
-              <div class="form-field"><label class="form-label" id="lblFProject">Project</label><div id="fProject"></div></div>
-              <div class="form-field fp-full"><label class="form-label" id="lblFActivity">Last activity</label><div id="fActivity"></div></div>
+              <div class="form-field" data-cold-only><label class="form-label" id="lblFStage">Stage</label><div id="fpStage"></div></div>
+              <div class="form-field" data-cold-only><label class="form-label" id="lblFStatus">Status</label><div id="fpStatus"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFChannel">Channel</label><div id="fpChannel"></div></div>
+              <div class="form-field"><label class="form-label" id="lblFPlatform">Platform</label><div id="fpPlatform"></div></div>
             </div>
             <div class="fp-foot">
               <span class="fp-result" id="filtersResult"></span>
@@ -81,34 +107,23 @@
 
       <!-- Actions -->
       <div class="actionbar">
-        <div class="actionbar-left">
-          <button type="button" class="btn btn-primary" id="addLeadBtn"><span data-icon="plus"></span>Add Lead</button>
-          <div class="workflow-hint" aria-label="How the pipeline works">
-            <span class="wh-item"><span class="wh-stage">Stage</span><span class="wh-note">column</span></span>
-            <span class="wh-arrow" data-icon="chevronRight"></span>
-            <span class="wh-item"><span class="badge-status tone-blue"><span class="dot"></span>Status</span></span>
-            <span class="wh-arrow" data-icon="chevronRight"></span>
-            <span class="wh-item"><span class="badge-sub">Sub-status</span></span>
-            <span class="wh-sep"></span>
-            <span class="wh-text">Click a lead to update it. Drag a card to move it to another stage.</span>
-          </div>
-        </div>
-        <div class="view-toggle" role="group" aria-label="View">
+        <button type="button" class="btn btn-primary" id="addLeadBtn"><span data-icon="plus"></span>Add Lead</button>
+        <div class="view-toggle" id="viewToggle" role="group" aria-label="View">
           <button type="button" class="vt-btn" data-view="list" title="List view" aria-pressed="false" data-icon="list"></button>
-          <button type="button" class="vt-btn is-active" data-view="kanban" title="Kanban view" aria-pressed="true" data-icon="kanban"></button>
+          <button type="button" class="vt-btn" data-view="kanban" title="Kanban view" aria-pressed="true" data-icon="kanban"></button>
         </div>
       </div>
 
       <div class="active-filters" id="activeFilters" hidden></div>
 
       <main class="workspace">
-        <div class="board" id="board" aria-label="Sales pipeline board"></div>
-        <div class="list-wrap" id="listView" hidden></div>
+        <div class="board" id="board" aria-label="Cold sales pipeline" hidden></div>
+        <div class="list-wrap" id="listView"></div>
       </main>
     </div>
   </div>
 
-  <!-- One centered modal handles view, update, move and create -->
+  <!-- One centered modal: lead creation, Fresh lead editing, Cold lead update -->
   <div class="modal-backdrop" id="modalBackdrop" hidden>
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></div>
   </div>

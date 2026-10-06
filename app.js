@@ -766,17 +766,15 @@
           <td class="lt-name"><strong>${hl(l.name)}</strong><small>#${hl(l.id)}</small></td>
           <td class="lt-num">${esc(formatPhone(l.phone))}</td>
           <td>${l.project ? hl(l.project) : '<span class="lt-muted">--</span>'}</td>
-          <td${l.budget ? ' class="lt-num"' : ''}>${l.budget ? esc(formatMoney(l.budget)) : '<span class="lt-muted">--</span>'}</td>
+          <td>${l.budget ? esc(formatMoney(l.budget)) : '<span class="lt-muted">--</span>'}</td>
           <td>${l.unit ? esc(l.unit) : '<span class="lt-muted">--</span>'}</td>
           <td>${agentHTML(l.agent)}</td>
-          <td class="lt-source">${l.channel ? `<b>${esc(channelById(l.channel).label)}</b>${l.platform ? ' · ' + hl(l.platform) : ''}` : '--'}</td>
+          <td class="lt-source">${l.platform ? hl(l.platform) : '--'}</td>
           <td class="lt-muted">${esc(relativeTime(l.createdAt))}</td>
-          <td>${statusBadge(l.status)}</td>
-          <td class="lt-actions"><button type="button" class="btn btn-secondary btn-xs" data-action="to-cold" title="Start working this lead in the Cold pipeline">Move to Cold${icon('arrowRight')}</button></td>
         </tr>`).join('');
-    return `<table class="lead-table">
-      <thead><tr><th>Name</th><th>Number</th><th>Project</th><th>Budget</th><th>Unit</th><th>Sales Name</th><th>Channel · Platform</th><th>Created</th><th>Status</th><th class="lt-actions"></th></tr></thead>
-      <tbody>${rows || emptyRow(10, true)}</tbody>
+    return `<table class="lead-table fresh-table">
+      <thead><tr><th>Name</th><th>Number</th><th>Project</th><th>Budget</th><th>Unit</th><th>Sales Name</th><th>Platform</th><th>Created</th></tr></thead>
+      <tbody>${rows || emptyRow(8, true)}</tbody>
     </table>`;
   }
 
@@ -841,6 +839,9 @@
     });
     $('#crumbSection').textContent = cold ? 'Cold' : 'Fresh';
     $('#sectionCaption').textContent = cold ? 'Leads currently being worked by Sales' : 'New incoming leads, not yet in the sales pipeline';
+    $('#topbarActions').hidden = !cold;
+    $('#topSearchBtn').hidden = !cold;
+    $('#topAddBtn').hidden = !cold;
     $('#viewToggle').hidden = !cold;
     $$('.vt-btn').forEach((b) => {
       const on = b.dataset.view === state.coldView;
@@ -856,6 +857,14 @@
   function setSection(section) {
     if (section !== 'fresh' && section !== 'cold') return;
     state.section = section;
+    if (section === 'fresh') {
+      state.filters.project = '';
+      state.filters.agent = '';
+      state.filters.stage = '';
+      state.filters.status = '';
+      state.filters.channel = '';
+      state.filters.platform = '';
+    }
     try { history.replaceState(null, '', '#' + section); } catch (e) { /* file:// or sandbox */ }
     toggleFiltersPanel(false);
     closeAllPopovers();
@@ -936,7 +945,7 @@
     searchClear.addEventListener('click', () => { clearSearch(); searchInput.focus(); });
     $('#topSearchBtn').addEventListener('click', () => searchInput.focus());
 
-    $('#filtersBtn').addEventListener('click', () => toggleFiltersPanel());
+    $('#filtersBtn').addEventListener('click', () => { if (isCold()) toggleFiltersPanel(); });
     $('#filtersDone').addEventListener('click', () => toggleFiltersPanel(false));
     $('#filtersReset').addEventListener('click', () => resetFilters(false));
     $('#filtersPanel').addEventListener('keydown', (e) => {

@@ -665,8 +665,7 @@
     return `<span class="badge-status tone-${st.tone}"><span class="dot"></span>${esc(st.label)}</span>`;
   }
   function stateBadges(lead) {
-    const sub = subStatusOf(lead.status, lead.subStatus);
-    return statusBadge(lead.status) + (sub ? icon('chevronRight', 'lc-sep') + `<span class="badge-sub">${esc(sub.label)}</span>` : '');
+    return statusBadge(lead.status);
   }
   function agentHTML(name) {
     if (!name) return '<span class="lc-agent"><span class="unassigned">Unassigned</span></span>';

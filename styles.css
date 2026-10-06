@@ -822,3 +822,6 @@ mark { background: #fff1b8; color: inherit; border-radius: 2px; padding: 0 1px; 
 .filterbar.is-fresh .fb-filters { display: none; }
 .filterbar.is-fresh .fb-search { flex: 1 1 auto; }
 .filterbar.is-fresh .fb-search input { max-width: none; }
+
+/* Workflow related details are driven directly by Status; sub-status is no longer shown. */
+.wf-grid-3:has(#mSubSlot) { grid-template-columns: repeat(2, minmax(0, 1fr)); }

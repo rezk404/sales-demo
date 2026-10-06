@@ -817,3 +817,8 @@ mark { background: #fff1b8; color: inherit; border-radius: 2px; padding: 0 1px; 
 
 /* Fresh view keeps the toolbar intentionally minimal: search only. */
 @media (min-width: 761px) { .filterbar { padding-right: 24px; } }
+
+/* Fresh view: the filter bar contains search only. */
+.filterbar.is-fresh .fb-filters { display: none; }
+.filterbar.is-fresh .fb-search { flex: 1 1 auto; }
+.filterbar.is-fresh .fb-search input { max-width: none; }

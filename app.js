@@ -42,13 +42,8 @@
 
     no_answer: {
       label: 'No Answer', stage: 'contact', tone: 'amber',
-      subStatuses: [
-        { id: 'budget',   label: 'Budget',   field: 'budget' },
-        { id: 'project',  label: 'Project',  field: 'project' },
-        { id: 'location', label: 'Location', field: 'location' },
-        { id: 'note',     label: 'Note',     field: 'note' },
-      ],
-      fields: ['budget', 'project', 'location', 'note'],
+      subStatuses: [], fields: ['budget', 'project', 'location', 'note'],
+      emptyHint: 'No Answer has no sub-status. Its related details are shown automatically.',
     },
     call_later: {
       label: 'Call Later', stage: 'contact', tone: 'sky',
@@ -91,32 +86,15 @@
 
     schedule_meeting: {
       label: 'Schedule Meeting', stage: 'meeting', tone: 'blue',
-      subStatuses: [
-        { id: 'office', label: 'Office', field: 'office' },
-        { id: 'site',   label: 'Site',   field: 'site' },
-        { id: 'note',   label: 'Note',   field: 'note' },
-      ],
-      fields: ['office', 'site', 'note'],
+      subStatuses: [], fields: ['meetingDate', 'office', 'site', 'note'],
     },
     meeting_done: {
       label: 'Meeting Done', stage: 'meeting', tone: 'teal',
-      subStatuses: [
-        { id: 'office',       label: 'Office',       field: 'office' },
-        { id: 'site',         label: 'Site',         field: 'site' },
-        { id: 'budget',       label: 'Budget',       field: 'budget' },
-        { id: 'project_name', label: 'Project Name', field: 'projectName' },
-        { id: 'note',         label: 'Note',         field: 'note' },
-      ],
-      fields: ['office', 'site', 'budget', 'projectName', 'note'],
+      subStatuses: [], fields: ['meetingDate', 'office', 'site', 'budget', 'projectName', 'note'],
     },
     reschedule_meeting: {
       label: 'Reschedule Meeting', stage: 'meeting', tone: 'purple',
-      subStatuses: [
-        { id: 'office', label: 'Office', field: 'office' },
-        { id: 'site',   label: 'Site',   field: 'site' },
-        { id: 'note',   label: 'Note',   field: 'note' },
-      ],
-      fields: ['office', 'site', 'note'],
+      subStatuses: [], fields: ['meetingDate', 'office', 'site', 'note'],
     },
 
     deal: {
@@ -165,6 +143,7 @@
     note:            { label: 'Note',             type: 'textarea', placeholder: 'Add a note about this update…', full: true },
     downPayment:     { label: 'Down Payment',     type: 'money' },
     quarter:         { label: 'Quarter',          type: 'select', options: QUARTERS,  placeholder: 'Select quarter' },
+    meetingDate:     { label: 'Meeting Date',     type: 'date', required: true },
     office:          { label: 'Office',           type: 'select', options: OFFICES,   placeholder: 'Select office' },
     site:            { label: 'Site',             type: 'select', options: SITES,     placeholder: 'Select site' },
     eoi:             { label: 'EOI',              type: 'money' },
@@ -1561,7 +1540,6 @@
   function setDraftStatus(statusId) {
     Object.assign(modal.draft, { status: statusId, subStatus: '' });
     renderWorkflow();
-    if (STATUS_CONFIG[statusId].subStatuses.length) modal.selects.sub.flash();
   }
   function setDraftSub(subId) {
     modal.draft.subStatus = subId;
@@ -1584,21 +1562,16 @@
       d.status
     );
 
-    // Sub-status options: only the sub-statuses of the selected status
-    const subs = st ? st.subStatuses : [];
+    // Sub-status is no longer required in the workflow. The selected status
+    // determines which related fields are shown automatically.
+    $('#mSubReq', modalEl).hidden = true;
+    $('#mSubSlot', modalEl).closest('.form-field').hidden = true;
     const subSelect = modal.selects.sub;
-    $('#mSubReq', modalEl).hidden = !(st && subs.length);
-    if (!st || !subs.length) {
-      subSelect.setOptions([], '');
-      subSelect.setDisabled(true);
-      subSelect.setPlaceholder(st ? 'None' : 'Select a status first');
-    } else {
-      subSelect.setPlaceholder('Select sub-status');
-      subSelect.setOptions(subs.map((s) => ({ value: s.id, label: s.label })), d.subStatus);
-      subSelect.setDisabled(false);
-    }
+    subSelect.setOptions([], '');
+    subSelect.setDisabled(true);
+    subSelect.setPlaceholder('Not required');
 
-    const sub = subStatusOf(d.status, d.subStatus);
+    const sub = null;
     $('#mCrumb', modalEl).innerHTML = st
       ? statusBadge(d.status) + (sub ? icon('chevronRight', 'lc-sep') + `<span class="badge-sub">${esc(sub.label)}</span>` : '')
       : '';
@@ -1613,9 +1586,7 @@
     const box = $('#mDetails', modalEl);
     const st = d.status ? STATUS_CONFIG[d.status] : null;
     if (!st) { box.innerHTML = '<div class="details-empty">Select a status to see the related details.</div>'; return; }
-    if (!st.subStatuses.length) { box.innerHTML = `<div class="details-empty">${esc(st.label)} has no sub-status and no extra details.</div>`; return; }
-    const sub = subStatusOf(d.status, d.subStatus);
-    if (!sub) { box.innerHTML = '<div class="details-empty">Select a sub-status to see the related details.</div>'; return; }
+    if (!st.fields.length) { box.innerHTML = `<div class="details-empty">${esc(st.label)} has no related details.</div>`; return; }
 
     ['project', 'projectName'].forEach((k) => {
       if (st.fields.includes(k) && !d.details[k] && modal.lead.project) d.details[k] = modal.lead.project;
@@ -1625,13 +1596,12 @@
     const grid = $('#mFieldGrid', box);
     st.fields.forEach((fieldId, i) => {
       const def = FIELD_DEFS[fieldId];
-      const primary = sub.field === fieldId;
       const wrap = document.createElement('div');
-      wrap.className = `form-field${def.full ? ' is-full' : ''}${primary ? ' is-primary' : ''}`;
+      wrap.className = `form-field${def.full ? ' is-full' : ''}`;
       wrap.style.animationDelay = `${i * 30}ms`;
       const inputId = `mf-${fieldId}`;
       const labelId = `lbl-${inputId}`;
-      wrap.innerHTML = `<label class="form-label" id="${labelId}" for="${inputId}">${esc(def.label)}${primary ? `<span class="primary-tag" title="Matches the selected sub-status">${esc(sub.label === def.label ? 'Sub-status' : sub.label)}</span>` : ''}</label>`;
+      wrap.innerHTML = `<label class="form-label" id="${labelId}" for="${inputId}">${esc(def.label)}${def.required ? '<span class="req">*</span>' : ''}</label>`;
       const value = d.details[fieldId] == null ? '' : d.details[fieldId];
 
       if (def.type === 'select') {
@@ -1659,7 +1629,8 @@
   function workflowError() {
     const d = modal.draft;
     if (!d.status) return 'Select a status.';
-    if (STATUS_CONFIG[d.status].subStatuses.length && !d.subStatus) return 'Select a sub-status.';
+    const st = STATUS_CONFIG[d.status];
+    if (st.stage === 'meeting' && !d.details.meetingDate) return 'Select a meeting date.';
     return '';
   }
 
@@ -1675,11 +1646,15 @@
 
     st.fields.forEach((k) => { if (d.details[k] !== undefined) lead.details[k] = d.details[k]; });
     if (st.fields.includes('budget') && d.details.budget) lead.budget = d.details.budget;
+    if (st.stage === 'meeting' && d.details.meetingDate) {
+      const meetingAt = new Date(d.details.meetingDate + 'T12:00:00').toISOString();
+      lead.nextFollowUp = st.label === 'Meeting Done' ? '' : meetingAt;
+    }
     const proj = (st.fields.includes('project') && d.details.project) || (st.fields.includes('projectName') && d.details.projectName);
     if (proj) lead.project = proj;
     Object.assign(lead, { stage: d.stage, status: d.status, subStatus: d.subStatus, lastActivity: now });
 
-    const stateLabel = `${st.label}${sub ? ' › ' + sub.label : ''}`;
+    const stateLabel = st.label;
     let historyText, message;
     if (stageChanged) {
       historyText = `Moved to ${stageById(d.stage).name} · ${stateLabel}`;
